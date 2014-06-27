@@ -7,7 +7,7 @@
  * JVC and Panasonic protocol added by Kristian Lauszus (Thanks to zenwheel and other people at the original blog post)
  * Heavily modified by Steve Spence, http://arduinotronics.blogspot.com
  * Heavily modified by Hack Pittsburgh http://www.hackpittsburgh.org
-*/
+ */
 
 #include <IRremote.h>
 #include <Bounce.h>
@@ -63,7 +63,7 @@ void SSservoUp() {
   SSservo.write(80);
 }
 void SSservoDown() {
-  SSservo.write(80);
+  SSservo.write(180);
 }
 
 // Silly String Hinge Control
@@ -76,10 +76,10 @@ void rightHingeDown() {
 
 // Smoke Fire Control
 void airTubeOpen() {
-  smokeBomb.write(180);
+  smokeBomb.write(80);
 }
 void airTubeCrimp() {
-  smokeBomb.write(80);
+  smokeBomb.write(180);
 }
 
 // Smoke Hinge Control
@@ -125,46 +125,50 @@ void setup()
   leftHingeDown();
   caltropCover.attach(30);
   caltropCoverClosed();
-  
+
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ OTHER FUNCTIONS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 void CALTROPS() {
   if (digitalRead(caltropLED) == 0){
-  digitalWrite(caltropLED, HIGH);   // sets the LED on
-  } else if (digitalRead(caltropLED) == 1) {
-  digitalWrite(caltropLED, LOW);   // sets the LED off
+    digitalWrite(caltropLED, HIGH);   // sets the LED on
+  } 
+  else if (digitalRead(caltropLED) == 1) {
+    digitalWrite(caltropLED, LOW);   // sets the LED off
   }
 }
 
 void WATERGUN() {
   if (digitalRead(waterGunLED) == 0){
-  digitalWrite(waterGunLED, HIGH);   // sets the LED on
-  } else if (digitalRead(waterGunLED) == 1) {
-  digitalWrite(waterGunLED, LOW);   // sets the LED off
+    digitalWrite(waterGunLED, HIGH);   // sets the LED on
+  } 
+  else if (digitalRead(waterGunLED) == 1) {
+    digitalWrite(waterGunLED, LOW);   // sets the LED off
   }
 }
 
 void SMOKE() {
   if (digitalRead(smokeLED) == 0){
-  digitalWrite(smokeLED, HIGH);   // sets the LED on
-  leftHingeUp();
-  } else if (digitalRead(smokeLED) == 1) {
-  digitalWrite(smokeLED, LOW);   // sets the LED off
-  leftHingeDown();
-  airTubeCrimp();
+    digitalWrite(smokeLED, HIGH);   // sets the LED on
+    leftHingeUp();
+  } 
+  else if (digitalRead(smokeLED) == 1) {
+    digitalWrite(smokeLED, LOW);   // sets the LED off
+    leftHingeDown();
+    airTubeCrimp();
   }
 }
 
 void SILLYSTRING() {
   if (digitalRead(sillyStringLED) == 0){
-  digitalWrite(sillyStringLED, HIGH);   // sets the LED on
-  rightHingeUp();
-  } else if (digitalRead(sillyStringLED) == 1) {
-  digitalWrite(sillyStringLED, LOW);   // sets the LED off
-  rightHingeDown();
-  SSservoUp();
+    digitalWrite(sillyStringLED, HIGH);   // sets the LED on
+    rightHingeUp();
+  } 
+  else if (digitalRead(sillyStringLED) == 1) {
+    digitalWrite(sillyStringLED, LOW);   // sets the LED off
+    rightHingeDown();
+    SSservoUp();
   }
 }
 
@@ -202,110 +206,132 @@ void stopShooting() {
   caltropCoverClosed();
 }
 
+// Timeout for remote triggered fire in milliseconds
+#define REMOTE_FIRE_TIMEOUT 5000
+
+bool remoteFireFlag = false;
+unsigned long remoteFireStart;
+
+// If remoteFireFlag is set, this function checks if the remoteFireTimeout is reached
+void checkRemoteTimeout() {
+  if (remoteFireFlag && ((millis() - remoteFireStart) > REMOTE_FIRE_TIMEOUT)) remoteFireFlag = false;
+}
+
+void REMOTE_FIRE() {
+  remoteFireStart = millis();
+  remoteFireFlag = true;
+}
+
+enum {
+JVC_ATT       = 0x0000F171,
+JVC_SOUND     = 0x0000F1B1,
+JVC_U         = 0x0000F129,
+JVC_D         = 0x0000F1A9,
+JVC_R         = 0x0000F1C9,
+JVC_F         = 0x0000F149,
+JVC_VOL_DOWN  = 0x0000F1A1,
+JVC_VOL_UP    = 0x0000F121,
+CASIO_CH_DOWN = 0x77C26DE8,
+CASIO_REW     = 0xA224542C,
+CASIO_FF      = 0x455951E0,
+CASIO_CH_UP   = 0x8B603BB8,
+CASIO_PLAY    = 0x5A78F08C,
+CASIO_STOP    = 0x58F71FB0,
+CASIO_TV      = 0xE2B0095F,
+CASIO_POWER   = 0xB8FC80C4,
+};
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ VOID LOOP ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 void loop() {
-  
+
+  checkRemoteTimeout();
   TRIGGER = digitalRead(TriggerBUT);
-  if (TRIGGER == HIGH) {
+  if (TRIGGER == HIGH || remoteFireFlag) {
     mainFiringSequence();
-  } else if (TRIGGER == LOW) {
+  } 
+  else if (TRIGGER == LOW || !remoteFireFlag) {
     stopShooting();
   }
-    
-  
+
   reset = digitalRead(resetBUT);
   if (reset == HIGH) {
     ledstop();
-    
+
   }
-    
+
   // call to the debouncing library/functions
   caltropBounce.update();
   waterGunBounce.update();
   smokeBounce.update();
   sillyStringBounce.update();
-  
+
   // button inputs
   caltropVal = caltropBounce.read();
   waterGunVal = waterGunBounce.read();
   smokeVal = smokeBounce.read();
   sillyStringVal = sillyStringBounce.read();
-  
+
   if (caltropVal == true && caltropState == false) {
     CALTROPS();
   }
   caltropState = caltropVal;
-  
+
   if (waterGunVal == true && waterGunState == false) {
     WATERGUN();
   }
   waterGunState = waterGunVal;
-  
+
   if (smokeVal == true && smokeState == false) {
     SMOKE();
   }
   smokeState = smokeVal;
-  
+
   if (sillyStringVal == true && sillyStringState == false) {
     SILLYSTRING();
   }
   sillyStringState = sillyStringVal;
-  
-  
-  
+
   if (irrecv.decode(&results)) {
-    
-	long int decCode = results.value;
-	Serial.println(decCode);
-	switch (results.value) {
-        
-        // For FOB
-  	case 61737:
-          CALTROPS();
-        break;
-        
-  	case 61897:
-          WATERGUN();
-    	break;
-  	
-        case 61769:
-          SMOKE();
-    	break;
-  	
-        case 61865:
-          SILLYSTRING();
-    	break;  
-  	
-        case 61809:
-          ledstop();
-    	break;
 
-        // For Watch      	
-  	case 688268197:
-          CALTROPS();
-        break;
-        
-  	case 694752261:
-          WATERGUN();
-    	break;
-  	
-        case -1678958473:
-          SMOKE();
-    	break;
-  	
-        case -1139104511:
-          SILLYSTRING();
-    	break;  
-  	
-        case -786483649:
-          ledstop();
-    	break; 
-  	
-        default:
-    	Serial.println("Waiting ...");
-	}
+    long int decCode = results.value;
+    Serial.println(decCode);
+    switch (results.value) {
 
-	irrecv.resume(); // Receive the next value
+    case JVC_F:
+    case CASIO_REW:
+      CALTROPS();
+      break;
+
+    case JVC_U:
+    case CASIO_CH_DOWN:
+      WATERGUN();
+      break;
+
+    case JVC_D:
+    case CASIO_CH_UP:
+      SMOKE();
+      break;
+
+    case JVC_R:
+    case CASIO_FF:
+      SILLYSTRING();
+      break;  
+
+    case JVC_SOUND:
+    case CASIO_STOP:
+      ledstop(); // Reset
+      break;
+
+    case JVC_ATT:
+    case CASIO_POWER:
+      REMOTE_FIRE();
+      break;
+
+    default:
+      Serial.println("Waiting ...");
+    }
+
+    irrecv.resume(); // Receive the next value
   }  
 }
+
