@@ -9,45 +9,67 @@
  * Heavily modified by Hack Pittsburgh http://www.hackpittsburgh.org
  */
 
+// Timeout for remote triggered fire in milliseconds
+#define REMOTE_FIRE_TIMEOUT 5000
+#define TELEMETRY_PERIOD_MS 100
+
 #include <IRremote.h>
 #include <Bounce.h>
 #include <Servo.h>
+#include <Alltrax.h>
 
-int sillyStringLED = 4;             	// LED connected to digital pin
-int smokeLED = 5;               	// LED connected to digital pin
-int caltropLED = 6;             	// LED connected to digital pin
-int waterGunLED = 7;             	// LED connected to digital pin
-int sillyStringBUT = 8;                 // Button connected to digital pin
-int smokeBUT = 9;                       // Button connected to digital pin
-int caltropBUT = 10;                    // Button connected to digital pin
-int waterGunBUT = 11;                   // Button connected to digital pin
+typedef struct {
+  float voltage;
+  float current;
+  int16_t temperature;
+  int16_t throttle;
+} msg_data_s;
 
-int resetBUT = 12;                      // Reset Switch on pin 12
-int TriggerBUT = 13;                    // Button connected to digital pin 13
+// this is the header for an XBee TX64 Request
+const uint8_t header[] = {0x7E,0x00,0x17,0x00,0x00,0x00,0x13,0xA2,0x00,0x40,0xA0,0xB1,0xD4,0x01};
 
-int RECV_PIN = 19;                      // IR reciever
+Alltrax    controller;                  // object to talk with motor controller
+msg_data_s motor_data;                  // structure to store motor controller state
 
-int waterGunRelay = 32;                 // 5V Relay connected to pin 32
+unsigned long remoteFireStart;          // Remote Fire TMO
+unsigned long motorDataTMO;             // Motor data telemetry TMO
+
+int sillyStringLED =  4;             	// LED connected to digital pin
+int smokeLED       =  5;               	// LED connected to digital pin
+int caltropLED     =  6;             	// LED connected to digital pin
+int waterGunLED    =  7;             	// LED connected to digital pin
+int sillyStringBUT =  8;                // Button connected to digital pin
+int smokeBUT       =  9;                // Button connected to digital pin
+int caltropBUT     = 10;                // Button connected to digital pin
+int waterGunBUT    = 11;                // Button connected to digital pin
+
+int resetBUT       = 12;                // Reset Switch on pin 12
+int TriggerBUT     = 13;                // Button connected to digital pin 13
+
+int RECV_PIN       = 19;                // IR reciever
+
+int waterGunRelay  = 32;                // 5V Relay connected to pin 32
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~ Debouncing
-Bounce caltropBounce = Bounce( caltropBUT, 5);
-Bounce waterGunBounce = Bounce( waterGunBUT, 5);
-Bounce smokeBounce = Bounce( smokeBUT, 5);
-Bounce sillyStringBounce = Bounce( sillyStringBUT, 5);
-int caltropVal = 0;
-int caltropState = 0;
-int waterGunVal = 0;
-int waterGunState = 0;
-int smokeVal = 0;
-int smokeState = 0;
-int sillyStringVal = 0;
+Bounce caltropBounce     = Bounce(caltropBUT,     5);
+Bounce waterGunBounce    = Bounce(waterGunBUT,    5);
+Bounce smokeBounce       = Bounce(smokeBUT,       5);
+Bounce sillyStringBounce = Bounce(sillyStringBUT, 5);
+
+int caltropVal       = 0;
+int caltropState     = 0;
+int waterGunVal      = 0;
+int waterGunState    = 0;
+int smokeVal         = 0;
+int smokeState       = 0;
+int sillyStringVal   = 0;
 int sillyStringState = 0;
 
 IRrecv irrecv(RECV_PIN);
 decode_results results;
 
-int reset = 0;
-int TRIGGER = 0;                        // FIRE ZE MISSILES!!!!!!!!!!!!!!
+int reset            = 0;
+int TRIGGER          = 0;              // FIRE ZE MISSILES!!!!!!!!!!!!!!
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ SERVOS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -60,10 +82,10 @@ Servo caltropCover;
 
 // Silly String Firing
 void SSservoUp() {
-  SSservo.write(80);
+  SSservo.write(100);
 }
 void SSservoDown() {
-  SSservo.write(180);
+  SSservo.write(0);
 }
 
 // Silly String Hinge Control
@@ -76,10 +98,10 @@ void rightHingeDown() {
 
 // Smoke Fire Control
 void airTubeOpen() {
-  smokeBomb.write(80);
+  smokeBomb.write(180);
 }
 void airTubeCrimp() {
-  smokeBomb.write(180);
+  smokeBomb.write(80);
 }
 
 // Smoke Hinge Control
@@ -102,19 +124,22 @@ void caltropCoverClosed() {
 
 void setup()
 {
-  Serial.begin(9600);
-  irrecv.enableIRIn(); // Start the receiver
-  pinMode(caltropLED, OUTPUT);  	// sets the digital pin as output
-  pinMode(waterGunLED, OUTPUT);  	// sets the digital pin as output
-  pinMode(smokeLED, OUTPUT);  	        // sets the digital pin as output
+  Serial.begin(9600);         // Debug serial port
+  controller.begin(&Serial1); // start connection to motor controller on USART1
+  irrecv.enableIRIn();        // Start the receiver
+  
+  pinMode(caltropLED,     OUTPUT);      // sets the digital pin as output
+  pinMode(waterGunLED,    OUTPUT);      // sets the digital pin as output
+  pinMode(smokeLED,       OUTPUT);      // sets the digital pin as output
   pinMode(sillyStringLED, OUTPUT);  	// sets the digital pin as output
-  pinMode(waterGunRelay, OUTPUT);       // sets the ditigal pin as output
-  pinMode(caltropBUT, INPUT);           // sets the digital pin as input
-  pinMode(waterGunBUT, INPUT);          // sets the digital pin as input
-  pinMode(smokeBUT, INPUT);             // sets the digital pin as input
-  pinMode(sillyStringBUT, INPUT);       // sets the digital pin as input
-  pinMode(resetBUT, INPUT);             // sets the digital pin as input
-  pinMode(TriggerBUT, INPUT);           // sets the digital pin as input
+  pinMode(waterGunRelay,  OUTPUT);      // sets the ditigal pin as output
+  pinMode(caltropBUT,      INPUT);      // sets the digital pin as input
+  pinMode(waterGunBUT,     INPUT);      // sets the digital pin as input
+  pinMode(smokeBUT,        INPUT);      // sets the digital pin as input
+  pinMode(sillyStringBUT,  INPUT);      // sets the digital pin as input
+  pinMode(resetBUT,        INPUT);      // sets the digital pin as input
+  pinMode(TriggerBUT,      INPUT);      // sets the digital pin as input
+  
   SSservo.attach(22);                    // attaches the servo on pin 3 to the servo object
   SSservoUp();
   rightHinge.attach(24);                 // "      "      "      "    4      "    "
@@ -126,6 +151,7 @@ void setup()
   caltropCover.attach(30);
   caltropCoverClosed();
 
+  motorDataTMO = millis(); // set TMO to current time
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ OTHER FUNCTIONS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -173,9 +199,9 @@ void SILLYSTRING() {
 }
 
 void ledstop() {
-  digitalWrite(waterGunLED, LOW);   // sets the LED off
-  digitalWrite(caltropLED, LOW);   // sets the LED off
-  digitalWrite(smokeLED, LOW);   // sets the LED off
+  digitalWrite(waterGunLED,    LOW);   // sets the LED off
+  digitalWrite(caltropLED,     LOW);   // sets the LED off
+  digitalWrite(smokeLED,       LOW);   // sets the LED off
   digitalWrite(sillyStringLED, LOW);   // sets the LED off
   SSservoUp();
   rightHingeDown();
@@ -199,6 +225,7 @@ void mainFiringSequence() {
     digitalWrite(waterGunRelay, HIGH);
   }
 }
+
 void stopShooting() {
   SSservoUp();
   digitalWrite(waterGunRelay, LOW);
@@ -206,11 +233,9 @@ void stopShooting() {
   caltropCoverClosed();
 }
 
-// Timeout for remote triggered fire in milliseconds
-#define REMOTE_FIRE_TIMEOUT 5000
+
 
 bool remoteFireFlag = false;
-unsigned long remoteFireStart;
 
 // If remoteFireFlag is set, this function checks if the remoteFireTimeout is reached
 void checkRemoteTimeout() {
@@ -223,27 +248,45 @@ void REMOTE_FIRE() {
 }
 
 enum {
-JVC_ATT       = 0x0000F171,
-JVC_SOUND     = 0x0000F1B1,
-JVC_U         = 0x0000F129,
-JVC_D         = 0x0000F1A9,
-JVC_R         = 0x0000F1C9,
-JVC_F         = 0x0000F149,
-JVC_VOL_DOWN  = 0x0000F1A1,
-JVC_VOL_UP    = 0x0000F121,
-CASIO_CH_DOWN = 0x77C26DE8,
-CASIO_REW     = 0xA224542C,
-CASIO_FF      = 0x455951E0,
-CASIO_CH_UP   = 0x8B603BB8,
-CASIO_PLAY    = 0x5A78F08C,
-CASIO_STOP    = 0x58F71FB0,
-CASIO_TV      = 0xE2B0095F,
-CASIO_POWER   = 0xB8FC80C4,
+JVC_ATT       = 0x0000F171L,
+JVC_SOUND     = 0x0000F1B1L,
+JVC_U         = 0x0000F129L,
+JVC_D         = 0x0000F1A9L,
+JVC_R         = 0x0000F1C9L,
+JVC_F         = 0x0000F149L,
+JVC_VOL_DOWN  = 0x0000F1A1L,
+JVC_VOL_UP    = 0x0000F121L,
+CASIO_CH_DOWN = 0x77C26DE8L,
+CASIO_REW     = 0xA224542CL,
+CASIO_FF      = 0x455951E0L,
+CASIO_CH_UP   = 0x8B603BB8L,
+CASIO_PLAY    = 0x5A78F08CL,
+CASIO_STOP    = 0x58F71FB0L,
+CASIO_TV      = 0xE2B0095FL,
+CASIO_POWER   = 0xB8FC80C4L,
 };
+
+void sendMotorTelemetry() {
+  // outgoing message buffer
+  uint8_t buf[27];
+  
+  // prepare the outgoing message buffer
+  memcpy(buf,header,sizeof(header));
+  memcpy(buf+sizeof(header),&motor_data,sizeof(motor_data));
+  
+  // calculate the checksum
+  uint8_t cs = 0;
+  for (int i = 3; i < sizeof(buf)-1; i++) cs += buf[i];
+  cs = 0xFF - cs;
+  
+  // set the checksum byte in the message
+  buf[26] = cs;
+  
+  for(int i = 0; i < sizeof(buf); i++) Serial.write(buf[i]); // send data to XBee
+}
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ VOID LOOP ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 void loop() {
-
   checkRemoteTimeout();
   TRIGGER = digitalRead(TriggerBUT);
   if (TRIGGER == HIGH || remoteFireFlag) {
@@ -256,7 +299,17 @@ void loop() {
   reset = digitalRead(resetBUT);
   if (reset == HIGH) {
     ledstop();
+  }
 
+  if (millis() >= motorDataTMO) {        // check if it's time to send telemetry
+    // Read motor controller values from alltrax
+    motor_data.voltage     = controller.readVoltage();
+    motor_data.temperature = controller.readTemp();
+    motor_data.current     = controller.readCurrent();
+    motor_data.throttle    = controller.readThrottle();
+  
+    sendMotorTelemetry();                // send data to xbee
+    motorDataTMO += TELEMETRY_PERIOD_MS; //update timeout to next period
   }
 
   // call to the debouncing library/functions
@@ -266,33 +319,24 @@ void loop() {
   sillyStringBounce.update();
 
   // button inputs
-  caltropVal = caltropBounce.read();
-  waterGunVal = waterGunBounce.read();
-  smokeVal = smokeBounce.read();
+  caltropVal     = caltropBounce.read();
+  waterGunVal    = waterGunBounce.read();
+  smokeVal       = smokeBounce.read();
   sillyStringVal = sillyStringBounce.read();
 
-  if (caltropVal == true && caltropState == false) {
-    CALTROPS();
-  }
+  if (caltropVal == true && caltropState == false) CALTROPS();
   caltropState = caltropVal;
 
-  if (waterGunVal == true && waterGunState == false) {
-    WATERGUN();
-  }
+  if (waterGunVal == true && waterGunState == false) WATERGUN();
   waterGunState = waterGunVal;
 
-  if (smokeVal == true && smokeState == false) {
-    SMOKE();
-  }
+  if (smokeVal == true && smokeState == false) SMOKE();
   smokeState = smokeVal;
 
-  if (sillyStringVal == true && sillyStringState == false) {
-    SILLYSTRING();
-  }
+  if (sillyStringVal == true && sillyStringState == false) SILLYSTRING();
   sillyStringState = sillyStringVal;
 
   if (irrecv.decode(&results)) {
-
     long int decCode = results.value;
     Serial.println(decCode);
     switch (results.value) {
