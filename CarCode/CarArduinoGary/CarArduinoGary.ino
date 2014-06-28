@@ -1,4 +1,4 @@
-/*
+/*NOTE:CHANGE FOR GITHUB
  *20140511  GEM  CAR_REV1_0
  *Start with CAR_REV0_0
  *
