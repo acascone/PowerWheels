@@ -1,4 +1,4 @@
-/*NOTE:CHANGE FOR GITHUB
+/*
  *20140511  GEM  CAR_REV1_0
  *Start with CAR_REV0_0
  *
@@ -72,10 +72,6 @@ boolean pin3;  //stores status of PIT XBee AD03 (PIT IN)
 boolean pin4;  //stores status of PIT XBee AD04 (FIRE)
 //**********
 
-int statusLed = 11;
-int errorLed = 12;
-int dataLed = 10;
-
 uint8_t option = 0;
 uint8_t data = 0;
 const int numCounterMeasures = 4;
@@ -111,7 +107,6 @@ boolean pitAlivePrev   = false;
 boolean pitAlivePulse  = false;
 boolean pitAliveMsgRcvd = false;
 
-
 unsigned long start = millis();
 
 // allocate five bytes for to hold a payload
@@ -120,7 +115,6 @@ uint8_t payload[] = {
 
 // with Series 1 you can use either 16-bit or 64-bit addressing
 // 16-bit addressing: Enter address of remote XBee, typically the coordinator
-//Tx16Request tx = Tx16Request(0x1874, payload, sizeof(payload));
 Tx16Request tx = Tx16Request(0x0005, payload, sizeof(payload));
 TxStatusResponse txStatus = TxStatusResponse();
 
@@ -140,17 +134,17 @@ long previousMillis      = 0;        // will store last time LED was updated
 //int cm1PB_State        = 0;        // variable for PB state for counter measure 1 pushbutton
 int cm1PB_State_Now      = 0;        // variable for current state of PB for counter measure 1 pushbutton
 int cm1PB_State_Prev     = 0;        // variable for previous state of PB for counter measure 1 pushbutton
-int pLoad = 0;                        //variable used to convert character data to decimal
-int throttlePosition = 0;
-int voltage = 0;
-int current = 0;
+int pLoad                = 0;        //variable used to convert character data to decimal
+int throttlePosition     = 0;
+int voltage              = 0;
+int current              = 0;
 int controllerTemperature = 0;
-int loopsUntilXmit = 5;  //transmit throttle position, voltage, current, and controller temperature once every 5 loops
-int loopCounter = 0;      //Counts up to loopsUntilXmit, then resets to 0 when analog values are transmitted 
+int loopsUntilXmit       = 5;        //transmit throttle position, voltage, current, and controller temperature once every 5 loops
+int loopCounter          = 0;        //Counts up to loopsUntilXmit, then resets to 0 when analog values are transmitted 
 
-// the follow variables is a long because the time, measured in miliseconds,
+// the following variables is a long because the time, measured in milliseconds,
 // will quickly become a bigger number than can be stored in an int.
-long interval = 1000;           // interval at which to blink (milliseconds)
+long interval            = 1000;     // interval at which to blink (milliseconds)
 //End Series1_Tx16Request_REV002 change
 
 void convertCharDataToDecimal()
