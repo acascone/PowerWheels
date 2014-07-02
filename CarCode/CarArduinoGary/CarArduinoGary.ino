@@ -123,15 +123,9 @@ int pin5 = 0;
 int motorTemperaturePin      = A0;  //A0 is pin that connects to motor thermistor
 int motorTemperatureValueADC = 0;   //variable to store the ADC value coming from the motor thermistor
 
-
-//Start Series1_Tx16Request_REV002 change
-// constants won't change. Used here to 
-// set pin numbers:
-
 // Variables will change:
 int cm1LED_State         = LOW;      // variable for LED state for counter measure 1
 long previousMillis      = 0;        // will store last time LED was updated
-//int cm1PB_State        = 0;        // variable for PB state for counter measure 1 pushbutton
 int cm1PB_State_Now      = 0;        // variable for current state of PB for counter measure 1 pushbutton
 int cm1PB_State_Prev     = 0;        // variable for previous state of PB for counter measure 1 pushbutton
 int pLoad                = 0;        //variable used to convert character data to decimal
@@ -145,7 +139,6 @@ int loopCounter          = 0;        //Counts up to loopsUntilXmit, then resets 
 // the following variables is a long because the time, measured in milliseconds,
 // will quickly become a bigger number than can be stored in an int.
 long interval            = 1000;     // interval at which to blink (milliseconds)
-//End Series1_Tx16Request_REV002 change
 
 void convertCharDataToDecimal()
 {
@@ -155,7 +148,6 @@ void convertCharDataToDecimal()
     pLoad -= payload[i] * pow(10, (4 - i));
     payload[i] += 48;
   }
-
 }
 
 void handle_RX_16_RESPONSE()
@@ -181,8 +173,6 @@ void handle_RX_16_RESPONSE()
       Serial.println(pitAliveNow);
 #endif
     }
-    //        else if (rx16.getData(4) >= 0 && rx16.getData(4) <= 4)
-    //        else if (rx16.getData(4) >= 0 + 31 + 19 && rx16.getData(4) <= 4 + 31 + 19)
     else if (rx16.getData(4) >= '1' && rx16.getData(4) <= '4')
     {
       toggleReq[(char)rx16.getData(4) - 49] = true;
@@ -208,7 +198,6 @@ void handle_RX_16_RESPONSE()
     Serial.println("We received a RX_16_RESPONSE BUT it was the wrong length (not of length 5)");
 #endif
   }
-
 }
 
 void checkForRcvdPacket()
@@ -418,7 +407,6 @@ void send_tx()
       Serial.println("in void send_tx()...got znet tx status");
 #endif
 
-
       // get the delivery status, the fifth byte
       if (txStatus.getStatus() == SUCCESS) {
         // success.  time to celebrate
@@ -435,7 +423,6 @@ void send_tx()
 
       }
     }  //end     if (xbee.getResponse().getApiId() == TX_STATUS_RESPONSE)
-
   }  //end   if (xbee.readPacket(5000))
 
   else if (xbee.getResponse().isError()) {
@@ -457,7 +444,6 @@ void getResponses()
 {
   // Get responses
   xbee.readPacket();
-
   if (xbee.getResponse().isAvailable())
   {
     Serial.println();
@@ -470,8 +456,7 @@ void getResponses()
     if (xbee.getResponse().getApiId() == RX_16_RESPONSE)
     {
       xbee.getResponse().getRx16Response(rx16);
-      //        option = rx16.getOption();
-      //        data = rx16.getData(0);
+
 #ifdef LOG_SERIAL
       for (int i = 0; i < rx16.getDataLength(); i++)
       {
@@ -502,8 +487,6 @@ void getResponses()
 #endif
 
         }
-        //        else if (rx16.getData(4) >= 0 && rx16.getData(4) <= 4)
-        //        else if (rx16.getData(4) >= 0 + 31 + 19 && rx16.getData(4) <= 4 + 31 + 19)
         else if (rx16.getData(4) >= '1' && rx16.getData(4) <= '4')
         {
 #ifdef LOG_SERIAL
@@ -569,14 +552,11 @@ void calcLED_States()
 
   for (int i = 0; i < numCounterMeasures; i++)
   {
-    // (cmPB_State_Now[i] && !cmPB_State_Prev[i] || !cmPB_State_Now[i] && cmPB_State_Prev[i]) forms the exclusive or of cmPB_State_Now[i] and cmPB_State_Prev[i] 
-    //(cmPB_State_Now[i] xor cmPB_State_Prev[i]) && cmPB_State_Now[i] creates pulse in loop when cmPB_State_Now[i] first goes high
     int cmPB_Pulse = ((cmPB_State_Now[i] && !cmPB_State_Prev[i] || !cmPB_State_Now[i] && cmPB_State_Prev[i]) && cmPB_State_Now[i]);  //generate pulse when cmPB_State_Now[i] first goes high
     bool_cmPB_State_Now[i] = false;
     bool_cmPB_State_Prev[i] = false;
     if (cmPB_State_Now[i] ==1) bool_cmPB_State_Now[i] = true;
     if (cmPB_State_Prev[i] ==1) bool_cmPB_State_Prev[i] = true;
-    boolean bool_cmPB_Pulse = ((bool_cmPB_State_Now[i] && !bool_cmPB_State_Prev[i] || !bool_cmPB_State_Now[i] && bool_cmPB_State_Prev[i]) && bool_cmPB_State_Now[i]);
 #ifdef LOG_SERIAL
     Serial.println();
     Serial.println("***in void calcLED_States()***");
@@ -584,8 +564,6 @@ void calcLED_States()
     Serial.println(bool_cmPB_State_Now[i]);
     Serial.print("bool_cmPB_State_Prev[i]: ");
     Serial.println(bool_cmPB_State_Prev[i]);
-    Serial.print("bool_cmPB_Pulse: ");
-    Serial.println(bool_cmPB_Pulse);
     Serial.println("in void calcLED_States()");
     Serial.print(i);
     Serial.print(" ");
