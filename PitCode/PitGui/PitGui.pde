@@ -428,85 +428,6 @@ void checkForReceivedPacket()
   }
 }
 
-//void processReceivedPacket()
-//{
-//  switch (responseType)
-//  {
-//  case  81:
-//    data = rxResponse.getData();
-//    if (LOG_SERIAL)
-//    {
-//      for (int i = 0; i < data.length; i++)
-//      {
-//        println("data[" + i + "]" + " " + char(data[i]));
-//      }
-//    }
-//    break;
-//  case  83:
-//    break;
-//  default:
-//    // statements
-//  }
-//}
-
-//void matchSwitchesWithData()
-void processReceivedData()
-{ 
-  print("...in processReceivedData()...We have entered processReceivedData() with response.getApiId(): ");
-  println(response.getApiId());
-  print("----------------...in processReceivedData() at time: ");
-  println(millis());
-//  boolean st8 = false;  //Local variable representing state of counter measure LED
-//  if (response.getApiId() == ApiId.RX_16_RESPONSE)
-//  {
-//    if (data[0] == 'C' & data[1] == 'M')
-//    {
-//      //We know that we are responding to a CMxHI or CMxLO command from CAR
-//      if (data[3] == 'L')
-//      {
-//        st8 = false;
-//      }
-//      else
-//      {
-//        st8 = true;
-//      } 
-//      ((Switch) switches.get(data[2] - 49)).state = st8;
-//      //      ((Switch) switches.get((char)data[2] - 0)).state = st8;
-//      int swNum = data[2] - 49;
-//      if (LOG_SERIAL)
-//      {
-//        println("saw " + (char)data[0] + (char)data[1] + (char)data[2] + (char)data[3] + (char)data[4]);
-//        println("setting counter measure sw" + swNum + " " + (char)data[3] + (char)data[4]);
-//      }
-//    }
-//    if (data[0] == 'T')
-//    {
-//      ((Indicator) indicators.get(1)).temp = pLoad;
-//    }
-//    else if (data[0] == 'P')
-//    {
-//      ((Indicator) indicators.get(2)).temp = pLoad;
-//    }
-//    else if (data[0] == 'V')
-//    {
-//      ((Indicator) indicators.get(3)).temp = pLoad;
-//    }
-//    else if (data[0] == 'I')
-//    {
-//      ((Indicator) indicators.get(4)).temp = pLoad;
-//    }
-//
-//    else if (data[0] == 'M')
-//    {
-//      ((Indicator) indicators.get(0)).temp = pLoad;
-//    }
-//    else
-//    {
-//      //we got an unexpected RX_16_RESPONSE
-//    }
-//  }
-}      //end of processReceivedData()
-
 void setup()
 {
   size(1200, 1000); // screen size
@@ -553,19 +474,11 @@ void setup()
   output = createWriter(fileName);
 
   // create a switch object for each node that doesn't have one yet
-  // ...and get current state of every new node
-  //  for (int j=0; j < nodes.size(); j++) {
-  //  for (int j=0; j < numSwitches; j++) {
-  //    switches.add(new Switch(switches.size()));
-  //    ((Switch) switches.get(j)).getState();
-  //  }
   switches = new ArrayList<Switch>();
   switches.add(new Switch(0, "Counter Measure 1"));
   switches.add(new Switch(1, "Counter Measure 2"));
   switches.add(new Switch(2, "Counter Measure 3"));
   switches.add(new Switch(3, "Counter Measure 4"));
-  switches.add(new Switch(4, "Fire"));
-  switches.add(new Switch(6, "Pit In"));
   indicators = new ArrayList<Indicator>();
   if (LOG_SERIAL)
   {
@@ -578,9 +491,6 @@ void setup()
   indicators.add(new VoltMeter(V, 450, 40, 375, 240, "Voltage", "Volts", 0, 45));
   indicators.add(new AnalogMeter(I, 450, 40, 375, 340, "Current", "Amps", 0, 300));
   lights = new ArrayList<Light>();
-  lights.add(new Light("Motor Temperature", 100, 100, 0*10 + 40, 650, receiveError));
-  lights.add(new Light("Controller Temperature", 100, 100, 1*140 + 40, 650, 0));
-  lights.add(new Light("Communication", 100, 100, 2*140 + 40, 650, 0));
   lights.add(new Light("Alive ACK", 100, 100, 3*140 + 40, 650, 0));
 
   img = loadImage("wide_HackPGH_Logo.png");
@@ -665,9 +575,7 @@ void draw()
       println("in draw()...calling send_TxTequest16 from PIT(main)_REVx_x");
       send_TxRequest16(request);
       checkForReceivedPacket();
-//      processReceivedData();
       checkForReceivedPacket();
-//      processReceivedData();
       //reset toggleReq[i]
       toggleReq[i] = false;
       println("in Draw()...we have reset toggleReq[" + i + "] to " + toggleReq[i]);
@@ -680,7 +588,6 @@ void draw()
 
   //receive data
   checkForReceivedPacket();
-//  processReceivedData();
   //render graphic
   // draw the switches on the screen
   for (int i =0; i<switches.size(); i++) {
@@ -746,34 +653,15 @@ void update_status_lights()
   }
   //set indicator lights to good condition
   //then test for error and set lights accordingly.
-  ((Light) lights.get(3)).status = 0;
-  ((Light) lights.get(2)).status = 0;
-  ((Light) lights.get(1)).status = 0;
   ((Light) lights.get(0)).status = 0;
-  receiveError = 1;    //line inserted for test purposes
-  if (receiveError == 1)
-  {
-    ((Light) lights.get(2)).status = 1;
-    ((Light) lights.get(1)).status = 1;
-    ((Light) lights.get(0)).status = 1;
-  }
-  if (controller_temperature_error == 1)
-  {
-    ((Light) lights.get(1)).status =1;
-  }
-  if (motor_temperature_error == 1)
-  {
-    ((Light) lights.get(0)).status = 1;
-  }
   if (millis() - aliveTime > 14000)
   {
-    ((Light) lights.get(3)).status = 1;
+    ((Light) lights.get(0)).status = 1;
   }
 }
 
 // This subroutine accepts the output of the 10 bit ADC and returns the temperature in celcius
 // It uses the datasheet for the thermistor.
-//int temperature_read (int temp_adc_val )
 float temperature_read (float temp_adc_val )
 //int temperature_read (int temp_transfer )
 {
@@ -980,9 +868,6 @@ void write_file()
   output.print(" Lights: ");
   output.print(((Light) lights.get(0)).status);
   output.print(",");
-  output.print(((Light) lights.get(1)).status);
-  output.print(",");
-  output.print(((Light) lights.get(2)).status);
   output.print(" Switches: ");
   output.print(((Switch) switches.get(0)).state);
   output.print(",");
@@ -991,10 +876,6 @@ void write_file()
   output.print(((Switch) switches.get(2)).state);
   output.print(",");
   output.print(((Switch) switches.get(3)).state);
-  output.print(",");
-  output.print(((Switch) switches.get(4)).state);
-  output.print(",");
-  output.print(((Switch) switches.get(5)).state);
   output.println();
 }
 
