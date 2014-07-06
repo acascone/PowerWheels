@@ -430,7 +430,7 @@ void checkForReceivedPacket()
 
 void setup()
 {
-  size(1200, 1000); // screen size
+  size(1200, 850); // screen size
   smooth(); // anti-aliasing for graphic display
 
   // You’ll need to generate a font before you can run this sketch.
@@ -452,6 +452,7 @@ void setup()
   try
   {
     xbee.open("COM12", 9600);
+    //xbee.open("/dev/tty.usbserial-A1014K3A", 9600);
   }
   catch (XBeeException e)
   {
@@ -491,7 +492,8 @@ void setup()
   indicators.add(new VoltMeter(V, 450, 40, 375, 240, "Voltage", "Volts", 0, 45));
   indicators.add(new AnalogMeter(I, 450, 40, 375, 340, "Current", "Amps", 0, 300));
   lights = new ArrayList<Light>();
-  lights.add(new Light("Alive ACK", 100, 100, 3*140 + 40, 650, 0));
+  //                                height, width,       xpos, ypos, status
+  lights.add(new Light("Alive ACK",    100,   100, 3*140 + 40,  500,      0));
 
   img = loadImage("wide_HackPGH_Logo.png");
 

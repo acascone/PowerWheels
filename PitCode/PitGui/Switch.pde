@@ -2,7 +2,7 @@
 boolean armed = false;
 class Switch {
   ArrayList<Switch> switches;  //an arrayList for all the switches
-
+  final int yPosition = 700;
     int switchNumber, posX, posY;
   boolean state = false; // current switch state
   //  XBeeAddress64 addr64;  // stores the raw address locally
@@ -18,7 +18,7 @@ class Switch {
     switchNumber = _switchNumber;
     posX = switchNumber * (on.width+ 40) + 40;
     //    posY = 50;
-    posY = 850;
+    posY = yPosition;
     switches = new ArrayList<Switch>();  //initialize the arraylist
   }
   // initialize switch object:
@@ -28,7 +28,7 @@ class Switch {
     switchNumber = _switchNumber;
     posX = switchNumber * (on.width+ 40) + 40;
     //    posY = 50;
-    posY = 850;
+    posY = yPosition;
     label = _label;
     switches = new ArrayList<Switch>();  //initialize the arraylist
   }
