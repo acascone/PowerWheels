@@ -3,7 +3,7 @@ boolean armed = false;
 class Switch {
   ArrayList<Switch> switches;  //an arrayList for all the switches
   final int yPosition = 700;
-    int switchNumber, posX, posY;
+  int switchNumber, posX, posY;
   boolean state = false; // current switch state
   //  XBeeAddress64 addr64;  // stores the raw address locally
   //  String address;        // stores the formatted address locally
@@ -39,8 +39,7 @@ class Switch {
     if (state)
     {
       image(on, posX, posY); // if the switch is on, draw the on image
-    }
-    else
+    } else
     {
       image(off, posX, posY);     // otherwise if the switch is off,
     } 
@@ -87,10 +86,10 @@ class Switch {
    if(responseInt == 4|| responseInt == 5) { 
    // state of pin is 4 for off and 5 for on:
    state = boolean( responseInt - 4);  
-if (LOG_SERIAL)
-{
+   if (LOG_SERIAL)
+   {
    println("successfully got state " + state + " for pin 20 (D0)");
-}
+   }
    }
    else {  
    // if the current state is unsupported (like an analog input)
@@ -138,56 +137,37 @@ if (LOG_SERIAL)
       //      state = !state; // change the state of the switch if it was clicked
       int switchNum = switchCounter;
       toggleReq[switchNum] = true;
-/*
+      /*
 //if (LOG_SERIAL)
-//{
-      println("Change to a Switch State " + char(switchNum+49) + " requested");
-//}
-      // create a unicast packet to be delivered to remote radio with 16-bit address: 0002, with payload "ALIVE"
-      TxRequest16 request = new TxRequest16(new XBeeAddress16(0x00, 0x02), new int[] {
-        'T', 'G', 'C', 'M', char(switchNum+49)
-      }
-      );
-      println("calling send_TxTequest16 from toggleState");
-      send_TxRequest16(request);
-        checkForReceivedPacket();
-  processReceivedData();
-        checkForReceivedPacket();
-  processReceivedData();
-
-      //TODO check if I need 2 getResponse1() function calls...or if 1 call will work
-            getResponse1();
-            getResponse1();
-*/            
-//            state = false;
-//            if (response.getApiId() == ApiId.RX_16_RESPONSE)
-//            {
-//              if (data[0] == 'C' & data[2] == '1' & data[3] == 'H')
-//              {
-//                state = true;
-//                println("changing state of switch: " + switchCounter + " to..." + state);
-//              }
-//            }
-          }  //end if (mouseX >=posX && mouseY >= posY && mouseX <=posX+on.width && mouseY <= posY+on.height)
-    }  //end toggleState
-
-    void send_Tx64_request(int Arm_on[])
-    {
-      for (int i = 0; i < Arm_on.length; i++)
-      {
-        Tx64_request_cmd[i] = Arm_on[i];
-if (LOG_SERIAL)
-{
-  print(hex(Tx64_request_cmd[i], 2));
-        print("  ");
-}
-        //Transmit RemoteAT ON request
-        myPort.write(Tx64_request_cmd[i]);
-      }
-if (LOG_SERIAL)
-{
-      println("Tx64_request_cmd has been sent ");
-}
-    }
-  } //end of switch class
+       //{
+       println("Change to a Switch State " + char(switchNum+49) + " requested");
+       //}
+       // create a unicast packet to be delivered to remote radio with 16-bit address: 0002, with payload "ALIVE"
+       TxRequest16 request = new TxRequest16(new XBeeAddress16(0x00, 0x02), new int[] {
+       'T', 'G', 'C', 'M', char(switchNum+49)
+       }
+       );
+       println("calling send_TxTequest16 from toggleState");
+       send_TxRequest16(request);
+       checkForReceivedPacket();
+       processReceivedData();
+       checkForReceivedPacket();
+       processReceivedData();
+       
+       //TODO check if I need 2 getResponse1() function calls...or if 1 call will work
+       getResponse1();
+       getResponse1();
+       */
+      //            state = false;
+      //            if (response.getApiId() == ApiId.RX_16_RESPONSE)
+      //            {
+      //              if (data[0] == 'C' & data[2] == '1' & data[3] == 'H')
+      //              {
+      //                state = true;
+      //                println("changing state of switch: " + switchCounter + " to..." + state);
+      //              }
+      //            }
+    }  //end if (mouseX >=posX && mouseY >= posY && mouseX <=posX+on.width && mouseY <= posY+on.height)
+  }  //end toggleState
+} //end of switch class
 

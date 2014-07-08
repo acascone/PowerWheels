@@ -3,9 +3,9 @@
 
 // defines the indicator objects
 class Indicator {
-  
+
   ArrayList<Indicator> indicators;  //an arrayList for all the indicators
-  
+
   int sizeX, sizeY, posX, posY;
   int maxTemp = 200; // max of scale in degrees Fahrenheit
   int minTemp = 70; // min of scale in degress Fahrenheit
@@ -38,7 +38,7 @@ class Indicator {
   }
 
   void render() { // draw thermometer on screen
-//  println("render called............");
+    //  println("render called............");
     noStroke(); // remove shape edges
     ellipseMode(CENTER); // center bulb
     float bulbSize = sizeX + (sizeX * 0.5); // determine bulb size
@@ -46,12 +46,12 @@ class Indicator {
     // to help separate it from moving mercury
     // limit display to range
     float displayTemp = round( temp);
-//    if (temp > maxTemp) {
-//      displayTemp = maxTemp + 1;
-//    }
-//    if ((int)temp < minTemp) {
-//      displayTemp = minTemp;
-//    }
+    //    if (temp > maxTemp) {
+    //      displayTemp = maxTemp + 1;
+    //    }
+    //    if ((int)temp < minTemp) {
+    //      displayTemp = minTemp;
+    //    }
     if (temp > maxDisplay) {
       displayTemp = maxDisplay + 1;
     }
@@ -59,49 +59,49 @@ class Indicator {
       displayTemp = minDisplay;
     }
     // size for variable red area:
-//    float mercury = ( 1 - ( (displayTemp-minTemp) / (maxTemp-minTemp) )); 
+    //    float mercury = ( 1 - ( (displayTemp-minTemp) / (maxTemp-minTemp) )); 
     float mercury = ( 1 - ( (displayTemp-minDisplay) / (maxDisplay-minDisplay) )); 
     // draw edges of objects in black
     fill(0); 
-    rect(posX-3,posY-3,sizeX+5,sizeY+5); 
-    ellipse(posX+sizeX/2,posY+sizeY+stemSize, bulbSize+4,bulbSize+4);
-    rect(posX-3, posY+sizeY, sizeX+5,stemSize+5);
+    rect(posX-3, posY-3, sizeX+5, sizeY+5); 
+    ellipse(posX+sizeX/2, posY+sizeY+stemSize, bulbSize+4, bulbSize+4);
+    rect(posX-3, posY+sizeY, sizeX+5, stemSize+5);
     // draw grey mercury background
     fill(64); 
-    rect(posX,posY,sizeX,sizeY);
+    rect(posX, posY, sizeX, sizeY);
     // draw red areas
-    fill(255,16,16,1000);
+    fill(255, 16, 16, 1000);
 
     // draw mercury area:
-    rect(posX,posY+(sizeY * mercury), 
+    rect(posX, posY+(sizeY * mercury), 
     sizeX, sizeY-(sizeY * mercury));
 
     // draw stem area:
-    rect(posX, posY+sizeY, sizeX,stemSize); 
+    rect(posX, posY+sizeY, sizeX, stemSize); 
 
     // draw red bulb:
-    ellipse(posX+sizeX/2,posY+sizeY + stemSize, bulbSize,bulbSize); 
+    ellipse(posX+sizeX/2, posY+sizeY + stemSize, bulbSize, bulbSize); 
 
     // show text
     textAlign(LEFT);
-//    textAlign(CENTER);
+    //    textAlign(CENTER);
     fill(0);
     textSize(10);
 
     // show sensor address:
-//    text(address, posX-10, posY + sizeY + bulbSize + stemSize + 4, 65, 40);
+    //    text(address, posX-10, posY + sizeY + bulbSize + stemSize + 4, 65, 40);
     text(label, posX-10, posY + sizeY + bulbSize + stemSize + 4, 75, 40);
 
     // show maximum temperature: 
-//    text(maxTemp + "˚F", posX+sizeX + 5, posY); 
+    //    text(maxTemp + "˚F", posX+sizeX + 5, posY); 
     text(maxDisplay + "˚F", posX+sizeX + 5, posY); 
 
     // show minimum temperature:
-//    text(minTemp + "˚F", posX+sizeX + 5, posY + sizeY); 
+    //    text(minTemp + "˚F", posX+sizeX + 5, posY + sizeY); 
     text(minDisplay + "˚F", posX+sizeX + 5, posY + sizeY); 
 
     // show temperature:
-    text(round(temp) + " ˚F", posX+2,posY+(sizeY * mercury+ 14));
+    text(round(temp) + " ˚F", posX+2, posY+(sizeY * mercury+ 14));
   }
 }
 
