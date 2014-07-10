@@ -107,8 +107,6 @@ boolean pitAlivePrev   = false;
 boolean pitAlivePulse  = false;
 boolean pitAliveMsgRcvd = false;
 
-unsigned long start = millis();
-
 // allocate five bytes for to hold a payload
 uint8_t payload[] = { 
   0, 0, 0, 0, 0};
@@ -446,10 +444,12 @@ void getResponses()
   xbee.readPacket();
   if (xbee.getResponse().isAvailable())
   {
+#ifdef LOG_SERIAL
     Serial.println();
     Serial.println("Got an XBee response");
     Serial.print("XBee response is: ");
     Serial.println(xbee.getResponse().getApiId(),HEX);
+#endif
 
     // got something
     // got an rx packet
@@ -578,13 +578,13 @@ void calcLED_States()
     if (cmPB_Pulse || toggleReq[i])
     {
       cmLED_State_Now[i] = !cmLED_State_Now[i];
-      //#ifdef LOG_SERIAL
+#ifdef LOG_SERIAL
       Serial.println("in void calcLED_States()");
       Serial.print("cmLED_State_Now[");
       Serial.print(i);
       Serial.print("]: ");
       Serial.println(cmLED_State_Now[i]);
-      //#endif
+#endif
     } 
   }
 }
@@ -629,7 +629,6 @@ void nullPayload()
   for (int i = 0; i < sizeof(payload); i++)
   {
     payload[i] = char(0);
-
   }
 }
 
@@ -652,6 +651,7 @@ void setup()
   }
 
   xbee.begin(9600);
+#ifdef LOG_SERIAL
   for (int i = 0; i < sizeof(payload); i++)
   {
     Serial.print("payload[");
@@ -659,22 +659,11 @@ void setup()
     Serial.print("]: ");
     Serial.println(payload[i],DEC);
   }
+#endif
 }
 
 void loop()
 {
-  // start transmitting after a startup delay.  Note: this will rollover to 0 eventually so not best way to handle
-  if (millis() - start > 15000) {
-    // break down 10-bit reading into two bytes and place in payload
-    //pin5 = analogRead(5);
-    //    payload[1] = pin5 >> 8 & 0xff;
-    //    payload[2] = pin5 & 0xff;
-
-    //    send_tx();    //    xbee.send(tx);
-
-    // flash TX indicator
-  }
-
   //Reset toggleReq to false at start of loop
   for (int i = 0; i < numCounterMeasures; i++)
   {
@@ -713,7 +702,7 @@ void loop()
     cmPB_State_Now[i] = digitalRead(cmPB_Pins[i]);
   }
 
-  //#ifdef LOG_SERIAL
+#ifdef LOG_SERIAL
   Serial.println();
   Serial.println("***in void loop()***");
   Serial.print("cmPB_State_Now: ");
@@ -722,7 +711,7 @@ void loop()
     Serial.print(" ");
     Serial.print(cmPB_State_Now[i]);
   }
-  //#endif
+#endif
 
 #ifdef LOG_SERIAL
   Serial.println();
@@ -750,7 +739,7 @@ void loop()
     cmLED_State_Now[i] = digitalRead(cmLED_Pins[i]);
   }
 
-  //#ifdef LOG_SERIAL
+#ifdef LOG_SERIAL
   Serial.println();
   Serial.println("***in void loop()***");
   Serial.print("cmLED_State_Now: ");
@@ -759,9 +748,9 @@ void loop()
     Serial.print(" ");
     Serial.print(cmLED_State_Now[i]);
   }
-  //#endif
+#endif
 
-  //#ifdef LOG_SERIAL
+#ifdef LOG_SERIAL
   Serial.println();
   Serial.println("***in void loop()***");
   Serial.print("cmLED_State_Prev:");
@@ -771,7 +760,7 @@ void loop()
     Serial.print(cmLED_State_Prev[i]);
   }
   Serial.println();
-  //#endif
+#endif
 
   //Read controller analog values
   readAnalogs();  
@@ -784,19 +773,19 @@ void loop()
   calcLED_States();
 
   //Update H/W LED states
-  //    #ifdef LOG_SERIAL
+#ifdef LOG_SERIAL
   Serial.println("***in void loop()***Update H/W LED states***");
-  //    #endif
+#endif
 
   for (int i = 0; i < numCounterMeasures; i++)
   {
     digitalWrite(cmLED_Pins[i], cmLED_State_Now[i]);
-    //    #ifdef LOG_SERIAL
+#ifdef LOG_SERIAL
     Serial.print("writing to cmLED_Pins[");
     Serial.print(i);
     Serial.print("] the value ");
     Serial.println(cmLED_State_Now[i]);
-    //      #endif
+#endif
   }
 
   //Update XBee with H/W LED states.
@@ -843,12 +832,12 @@ void loop()
     float y_intercept = 180.5743428;
     pLoad = (motorTemperatureValueADC * slope + y_intercept) * 9.0 / 5.0 + 32.0;
 
-    //    #ifdef LOG_SERIAL
+#ifdef LOG_SERIAL
     Serial.print("motorTemperatureValueADC / pLoad: ");
     Serial.print(motorTemperatureValueADC);
     Serial.print(" / ");
     Serial.println(pLoad);
-    //    #endif
+#endif
 
     payload[0] = 'M';
     //    payload[3] = motorTemperatureValueADC >> 8 & 0xff;
@@ -926,7 +915,7 @@ void loop()
   //Remember states for next loop
   pitAlivePrev = pitAliveNow;
 
-  delay(2000);
+//  delay(2000);
 }  //end of loop()
 
 

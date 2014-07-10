@@ -38,80 +38,7 @@
  Arm3 XBee Pin12
  Arm4 XBee Pin11
  FIRE XBee Pin15or9
- 
- *
- *20140510  GEM  PIT_Telemetry_REV000
- *Start with Telemetry_REV016 
- *
- *20140511  GEM  PIT_Telemetry_REV001
- *Add ALIVE capability 
- *
- *20140512  GEM  PIT_Telemetry_REV002
- *Add send_TxRequest16()
- * 
- *20140513  GEM  PIT_Telemetry_REV003
- *Fix initializing of graphic switches to field (CAR) on startup of PIT processing program 
- *
- *20140513  GEM  PIT_Telemetry_REV004
- *Add capability to read I/O Samples using RxResponseIoSample 
- *20140514:  PIT_Telemetry_REV004 sketch has been tested with CAR_REV003.
- *           Have to fix toggling of switches...only cm1 sw reacts (even when cm2 sw is toggled 
- *20140513  GEM  PIT_Telemetry_REV005
- *Add brute force logic to correctly communicate to the CAR which switch is being toggled 
- *
- *20140520  GEM  PIT_Telemetry_REV006
- *see Black Notebook thoughts from 20140521
- *
- *20140525  GEM  PIT_Telemetry_REV008
- *change matchSwitchesWithData to light the lights correctly on all the switches.
- *
- *20140528  GEM  PIT_Telemetry_REV009
- *Read and display analog values (throttle position, voltage, current) from CAR.
- *
- *20140530  GEM  PIT_Telemetry_REV010
- *Lots of PB latency issues...cannot consistently toggle PB
- *
- *20140602  GEM  PIT_Telemetry_REV011
- *Rewrite transmit/receive functions using knowledge gained from ReceiveData_REV0_0.pde
- *
- *20140603  GEM  PIT_REV0_0
- *Trying to work thru latency/missing transmissions issues
- *
- *20140603  GEM  PIT_REV0_1
- *Change toggle request logic so that PIT sees transmission from CAR to set state of s/w cmLED.
- *Add capability to write output file.
- *
- *20140611  GEM  PIT_REV1_0
- *Clean up code
- *
- *20140615  GEM  PIT_REV1_1
- *Clean up code
- *
- *20140616  GEM  PIT_REV2_0
- *Add capability to interpret motor temperature data transmitted by CAR from its motor temperature thermistor, and display it on graphic.
- *This data is in ADC counts as transmitted by CAR...car needs to convert to temperature value like degC.
- *TODO...add conversion of temperature data from degC to degF.
- *
- *20140617  GEM  PIT_REV2_1
- *Cleanup display of data on graphic
- *(Add capability to interpret motor temperature data transmitted by CAR from its motor temperature thermistor, and display it on graphic.
- *This data is in ADC counts as transmitted by CAR...car needs to convert to temperature value like degC.
- *TODO...add conversion of temperature data from degC to degF.)
- *
- *20140618  GEM  PIT_REV2_2
- *Add ALIVE ACK light
- *Changed CAR_REV7_1 to transmit motor temperature in degF.
- *
- *20140618  GEM  PIT_REV2_3
- *Add 2 sec delay after transmitting ALIVE msg so that subsequent transmissions (such as requests to toggle cmLEDs) do not collide
- *
- *20140619  GEM  PIT_REV2_4
- *Changed try/catch in checkForReceivedPacket() so that logic is only executed if packet is received.
- *TODO explore combining logic from checkForReceivedPacket() and processReceivedData().
- *
- *20140625  GEM  PIT_REV3_0
- *Combine checkForReceivedPacket() function and processReceivedData().
- * 
+  
  */
 
 import java.util.*;
@@ -130,34 +57,28 @@ int[] data;
 int msb = 0;
 int lsb = 0;
 int options = 0;
-//XBeeResponse response;
 
 IoSample[] ioData;
 RxResponse16 rxResponse;
 TxRequest16 request;
-TxRequest16 aliveMsg;
+TxRequest16 aliveMsg = new TxRequest16(new XBeeAddress16(0x00, 0x02), new int[] { 'A', 'L', 'I', 'V', 'E' }  );
 int motorControlTemperatureValue = 0;    //variable contains motor control analog temp value
 int tyme = millis();
 int numCounterMeasures = 4;  //number of counter measures on CAR
 boolean[] toggleReq = new boolean[4];  //boolean array used to keep track of which counter measure switch is being toggled
 
 final boolean LOG_SERIAL = false;
+final int LIVE_TMO_MS = 2000;
 
 int temporaryTotal = 0;    //variable to store analog totals to display on indicators
-
 int error=0;  //XBee error indicator
 
-// make an array list of light objects for display
 ArrayList<Light> lights;  //an arrayList for all the lights
-
-// make an array list of switch objects for display
 ArrayList<Switch> switches;  //an arrayList for all the switches
+ArrayList<Indicator> indicators;
 
-// create a font for display
-PFont font;
-
+PFont font; // create a font for display
 long elapsedTime = 0;
-
 int switchCounter = -1;  //keep track of which switch is toggled
 
 //******************Start Indicator Variables***************
@@ -171,7 +92,6 @@ final String Current        = "I";  //current (amps)
 
 String[] list = new String[2];
 
-
 PrintWriter output;
 String volts = null;
 String amps = null;
@@ -183,17 +103,8 @@ String throtPos = null;  //power wheels car throttle position
 String param = null;  //generic variable to hold list[1] after trim
 
 int i = 0;
-
-// make an array list of indicator objects for display of thermometers
-ArrayList<Indicator> indicators;
-
-// make an array list of thermometer objects for display
-//ArrayList thermometers = new ArrayList();
-
 int displayValue = 0;  //variable passed to getXCTUData
-
 PImage img;
-
 int paramInt = 0;  //list[0]
 
 //********************End Indicator Variables***************
@@ -231,7 +142,7 @@ int     checksum_err = 0;
 boolean any_switch_armed = false;
 
 int     pLoad = 0;
-int     aliveTime = 0;    //variable to store time of successful response from Alive msg.
+int     aliveTime;    //variable to store time of successful response from Alive msg.
 
 void checkForReceivedPacket(XBeeResponse response)
 {
@@ -298,7 +209,6 @@ void checkForReceivedPacket(XBeeResponse response)
             st8 = true;
           } 
           ((Switch) switches.get(data[2] - 49)).state = st8;
-          //      ((Switch) switches.get((char)data[2] - 0)).state = st8;
           int swNum = data[2] - 49;
           if (LOG_SERIAL)
           {
@@ -376,6 +286,9 @@ void setup()
   size(1200, 850); // screen size
   smooth(); // anti-aliasing for graphic display
 
+  aliveTime = millis() - LIVE_TMO_MS;
+  
+  
   // You’ll need to generate a font before you can run this sketch.
   // Click the Tools menu and choose Create Font. Click Sans Serif,
   // choose a size of 10, and click OK.
@@ -396,6 +309,22 @@ void setup()
   {
     //xbee.open("COM12", 9600);
     xbee.open("/dev/tty.usbserial-A1014K3A", 9600);
+    
+    xbee.addPacketListener(new PacketListener() {
+    public void processResponse(XBeeResponse response) {
+        // handle the response
+        //println("processResponse()");
+        
+        if (response.getApiId() != ApiId.TX_STATUS_RESPONSE)
+        {
+          aliveTime = millis();
+          
+          
+          //println("aliveTime = " + aliveTime);
+        }
+        checkForReceivedPacket(response);
+    }
+    });
   }
   catch (XBeeException e)
   {
@@ -406,6 +335,7 @@ void setup()
       println("XBee Serial Port NOT Open");
     }
   }
+  
   // Create a new file in the sketch directory to store the data coming from the Power Wheels CAR
   DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd@HH_mm_ss");
   Date d = new Date();
@@ -425,18 +355,14 @@ void setup()
   switches.add(new Switch(2, "Counter Measure 3"));
   switches.add(new Switch(3, "Counter Measure 4"));
   indicators = new ArrayList<Indicator>();
-  if (LOG_SERIAL)
-  {
-    println("calling Thermometer");
-  }
   indicators.add(new Thermometer(MotorTemp, 35, 450, 0 * 75 + 40, 20, "Motor Temperature", "˚F", 0, 300));
   //  indicators.add(new Thermometer(MotorTemp2, 35, 450, 1 * 75 + 40, 20, "Motor2 Temperature", "˚F", 0, 1023));
   indicators.add(new Thermometer(ControllerTemp, 35, 450, 2 * 75 + 40, 20, "Controller Temperature", "˚F", 0, 100));
   indicators.add(new AnalogMeter(ThrottlePos, 450, 40, 375, 140, "Throttle Position", "%", 0, 100));
   indicators.add(new VoltMeter(Voltage, 450, 40, 375, 240, "Voltage", "Volts", 0, 45));
   indicators.add(new AnalogMeter(Current, 450, 40, 375, 340, "Current", "Amps", 0, 300));
+  
   lights = new ArrayList<Light>();
-  //                                height, width,       xpos, ypos, status
   lights.add(new Light("Alive ACK", 100, 100, 3*140 + 40, 500, 0));
 
   img = loadImage("wide_HackPGH_Logo.png");
@@ -457,34 +383,6 @@ void draw()
   background(255); // draw a white background
   imageMode(CORNERS);
   image(img, width-200, 0, width, 200);
-
-  //send ALIVE msg to notify CAR that PIT Telemetry is up
-  // start transmitting after a startup delay & periodically, thereafter.  Note: this will rollover to 0 eventually so not best way to handle
-  if (millis() - tyme > 13000)
-  {
-    //save millis() in tyme
-    tyme = millis();
-    println("millis(): " + tyme);
-    
-    //issue I'm Alive msg
-    if (LOG_SERIAL)
-    {
-      println("sending ALIVE msg");
-    }
-    // TODO: We don't want the draw function to handle sending this message, further, we don't need to allocate this each time.
-    // create a unicast packet to be delivered to remote radio with 16-bit address: 0002, with payload "ALIVE"
-    aliveMsg = new TxRequest16(new XBeeAddress16(0x00, 0x02), new int[] { 'A', 'L', 'I', 'V', 'E' }  );
-    println("Calling send_TxRequest16(aliveMsg)");
-    
-    TxStatusResponse tx_st_response = send_TxRequest16(aliveMsg);
-    if (tx_st_response.isSuccess())
-    {
-      aliveTime = millis();
-    }
-    
-    // TODO: WHY IS THIS HERE?????
-    //delay(2000);
-  }  
   
   if (LOG_SERIAL)
   {
@@ -511,36 +409,31 @@ void draw()
         println("in draw()...entered toggleReq[i] logic with i = " + i);
         println("in draw()...Change to a Switch State " + char(i+49) + " requested");
       }
-      // create a unicast packet to be delivered to remote radio with 16-bit address: 0002, with payload "ALIVE"
       
       TxRequest16 request = new TxRequest16(new XBeeAddress16(0x00, 0x02), new int[] { 'T', 'G', 'C', 'M', char(i+49) } );
       println("in draw()...calling send_TxTequest16 from PIT(main)_REVx_x");
+      
       try {
-        XBeeResponse response = xbee.sendSynchronous(request, 10000);
-        checkForReceivedPacket(response);
-      } catch (Exception e){};
-      //reset toggleReq[i]
+        // this should be switched to asynchronous
+        xbee.sendAsynchronous(request);
+        //XBeeResponse response = xbee.sendSynchronous(request, 10000);
+        //checkForReceivedPacket(response);
+      } catch (Exception e) {};
+      
       toggleReq[i] = false;
       println("in Draw()...we have reset toggleReq[" + i + "] to " + toggleReq[i]);
     }
   }
 
-  //transmit data
-//  send_TxRequest16(request);
-
-
   //receive data
-  try {
-  checkForReceivedPacket(xbee.getResponse(100));
-  } catch (Exception e){};
+  //try {
+  //  // try to get a packet, pass it to the handler. this will be replaced 
+  //  checkForReceivedPacket(xbee.getResponse(100));
+  //} catch (Exception e){};
   //render graphic
   // draw the switches on the screen
   for (int i =0; i<switches.size (); i++) {
-    //print("i: " + i + "\t");
     ((Switch) switches.get(i)).render();
-    //  for (switchCounter =0; switchCounter<switches.size(); switchCounter++) {
-    //    print("switchCounter: " + switchCounter + "\t");
-    //    ((Switch) switches.get(switchCounter)).render();
   }
 
   // draw the thermometers on the screen
@@ -599,10 +492,13 @@ void update_status_lights()
   }
   //set indicator lights to good condition
   //then test for error and set lights accordingly.
-  ((Light) lights.get(0)).status = 0;
-  if (millis() - aliveTime > 14000)
+  if (abs(millis() - aliveTime) > LIVE_TMO_MS)
   {
     ((Light) lights.get(0)).status = 1;
+  }
+  else
+  {
+    ((Light) lights.get(0)).status = 0;
   }
 }
 

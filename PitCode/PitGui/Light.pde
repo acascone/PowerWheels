@@ -19,7 +19,6 @@ class Light {
     lights = new ArrayList<Light>();  //initialize the arraylist
   }
 
-
   void render() { // draw switch on screen
     noStroke(); // remove shape edges
     //label switch
@@ -39,8 +38,6 @@ class Light {
     fill(0);
     textSize(10);
     // show actuator label
-    //    text(label, posX+on.width/2, posY + on.height + 10);
-//    text(label, posX+sizeX/2, posY + sizeY + 10);
     text(label, posX+sizeX/2, posY-20);
     // show on/off state
     String stateText = "GOOD";
@@ -49,8 +46,6 @@ class Light {
       stateText = "ERROR";
       fill(255,0,0);
     }
-    //    text(stateText, posX + on.width/2, posY-8);
-//    text(stateText, posX, posY-8);
     text(stateText, posX+sizeX/2, posY + sizeY + 10);
     fill(0);
   }
