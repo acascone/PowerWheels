@@ -378,7 +378,7 @@ void setup()
 // draw loop executes continuously
 void draw()
 {
-  //println("in Draw()");
+  //println("in Draw() " + millis());
   
   background(255); // draw a white background
   imageMode(CORNERS);
@@ -444,34 +444,6 @@ void draw()
   //write data to output file  
   write_file();
 } // end of draw loop
-
-TxStatusResponse send_TxRequest16(TxRequest16 _request)
-{
-  TxStatusResponse tx_st_response = new TxStatusResponse();
-  try
-  {
-    // send the packet and wait up to 12 seconds for the transmit status reply (you should really catch a timeout exception)
-    println("in send_TxRequest16...TRANSMITTING NOW!!!");
-    tx_st_response = (TxStatusResponse) xbee.sendSynchronous(_request, 12000);
-  }
-  catch (XBeeTimeoutException e)
-  {
-    println("in send_TxRequest16...XBeeTimeoutException: " + e);
-  }
-  catch (XBeeException e)
-  {
-    println("in send_TxRequest16...XBeeException: " + e);
-  }
-  if (tx_st_response.isSuccess()) {
-    // packet was delivered successfully
-    System.out.println("in send_TxRequest16...HURRAY Packet was delivered");
-    println("in send_TxRequest16...packet was: " + _request);
-  } else {
-    // packet was not delivered
-    System.out.println("in send_TxRequest16...Packet was not delivered.  status: " + tx_st_response.getStatus());
-  }
-  return tx_st_response;
-}
 
 void update_status_lights()
 {

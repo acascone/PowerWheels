@@ -205,13 +205,13 @@ void checkForRcvdPacket()
   xbee.readPacket();
   if (xbee.getResponse().isAvailable())
   {
-    //          #ifdef LOG_SERIAL
+#ifdef LOG_SERIAL
     Serial.println("***in void checkForRcvdPacket()***");
     Serial.print("got response: 0x");
     Serial.print(xbee.getResponse().getApiId(), HEX);
     Serial.print(" at approx. time: ");
     Serial.println(millis());
-    //          #endif
+#endif
 
     switch (xbee.getResponse().getApiId())
     {
@@ -271,25 +271,25 @@ void checkForRcvdPacket()
       handle_RX_16_RESPONSE();
       break;
     case RX_16_IO_RESPONSE:
-      //#ifdef LOG_SERIAL
+#ifdef LOG_SERIAL
       Serial.println("***in void checkForRcvdPacket()***");
       Serial.print("at time (millis()): ");
       Serial.print(millis());
       Serial.print(" ");
       Serial.println("we got an RX_16_IO_RESPONSE ");
-      //#endif
+#endif
 
       xbee.getResponse().getRx16IoSampleResponse(ioSample);
       //      if (boolean pin3 = ioSample.isDigitalEnabled(3))
       pin3 = ioSample.isDigitalEnabled(3);
       pin4 = ioSample.isDigitalEnabled(4);
       {
-        //        #ifdef LOG_SERIAL
+#ifdef LOG_SERIAL
         Serial.print("pin3: ");
         Serial.println(pin3);
         Serial.print("pin4: ");
         Serial.println(pin4);
-        //        #endif
+#endif
       }
       if (pin4)
       {
@@ -310,54 +310,55 @@ if (pin3)
 else
 //      if (!pin3)
       {
-        Serial.print("cm_Pins[0/1/2]: ");
+        //Serial.print("cm_Pins[0/1/2]: ");
         for (int i = 0; i < 3; i++)
         {
           digitalWrite(cm_Pins[i], cmLED_State_Now[i]);
 
-          //  #ifdef LOG_SERIAL
+#ifdef LOG_SERIAL
           Serial.print(cmLED_State_Now[i] * !pin3);
           Serial.print(" ");
-          //  #endif
+#endif
         }
         for (int i = 0; i < 3; i++)
         {
           if (cmLED_State_Now[i] == 1)
           {
 
-            //            #ifdef LOG_SERIAL
-//            Serial.println();
-//            Serial.print("changing cmLED_State_Now[");
-//            Serial.print(i);
-//            Serial.print("] to: ");
-//            Serial.println(!cmLED_State_Now[i]);
-            //            #endif
+#ifdef LOG_SERIAL
+            Serial.println();
+            Serial.print("changing cmLED_State_Now[");
+            Serial.print(i);
+            Serial.print("] to: ");
+            Serial.println(!cmLED_State_Now[i]);
+#endif
 
             cmLED_State_Now[i] = 0;
             digitalWrite(cmLED_Pins[i], cmLED_State_Now[i]);
 
-            //            #ifdef LOG_SERIAL
+#ifdef LOG_SERIAL
             Serial.println();
             Serial.println("***in void checkForRcvdPacket()***");
             Serial.print("we have performed a digitalWrite to pin ");
             Serial.print(cmLED_Pins[i]);
             Serial.print(" and have written the value ");
             Serial.println(cmLED_State_Now[i]);
-            //            #endif
+#endif
           }
         }
       }
 
-      //  #ifdef LOG_SERIAL
+#ifdef LOG_SERIAL
       Serial.println();
-      //  #endif
+#endif
 
       break;
     default:
       // statements
-      //        #ifdef LOG_SERIAL
+#ifdef LOG_SERIAL
       Serial.println("default condition");
-      //        #endif
+#endif
+      break;
     }    //end switch (xbee.getResponse().getApiId())
   }
   else if (xbee.getResponse().isError())
@@ -516,6 +517,7 @@ void getResponses()
     else
     {
       // not something we were expecting
+#ifdef LOG_SERIAL
       Serial.println("Received a response that is NOT RX_16_RESPONSE");
       Serial.print("response is: ");
       Serial.println(xbee.getResponse().getApiId());
@@ -529,13 +531,16 @@ void getResponses()
       {
         Serial.println("TX_STATUS_RESPONSE RECEIVED");
       }
+#endif
     }
   } // end if (xbee.getResponse().isAvailable())
   else if (xbee.getResponse().isError())
   {
+#ifdef LOG_SERIAL
     Serial.print("Error reading packet.  Error code: ");  
     Serial.println(xbee.getResponse().getErrorCode());
-  } 
+#endif
+  }
 }  // end void getResponses()
 
 void calcLED_States()
@@ -914,7 +919,8 @@ void loop()
 
   //Remember states for next loop
   pitAlivePrev = pitAliveNow;
-
+  
+  // this is not great...
   delay(100);
 }  //end of loop()
 
