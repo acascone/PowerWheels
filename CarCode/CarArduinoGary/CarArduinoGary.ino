@@ -915,7 +915,7 @@ void loop()
   //Remember states for next loop
   pitAlivePrev = pitAliveNow;
 
-//  delay(2000);
+  delay(100);
 }  //end of loop()
 
 

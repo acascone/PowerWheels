@@ -395,7 +395,7 @@ void draw()
     println();
   }
   
-  //transmit toggle requests
+  // transmit toggle requests
   for (int i = 0; i < numCounterMeasures; i++)
   {
     if (LOG_SERIAL)
@@ -411,25 +411,17 @@ void draw()
       }
       
       TxRequest16 request = new TxRequest16(new XBeeAddress16(0x00, 0x02), new int[] { 'T', 'G', 'C', 'M', char(i+49) } );
-      println("in draw()...calling send_TxTequest16 from PIT(main)_REVx_x");
       
       try {
-        // this should be switched to asynchronous
         xbee.sendAsynchronous(request);
-        //XBeeResponse response = xbee.sendSynchronous(request, 10000);
-        //checkForReceivedPacket(response);
       } catch (Exception e) {};
       
+      // perhaps we should set this to false after we got the response from the car
       toggleReq[i] = false;
       println("in Draw()...we have reset toggleReq[" + i + "] to " + toggleReq[i]);
     }
   }
 
-  //receive data
-  //try {
-  //  // try to get a packet, pass it to the handler. this will be replaced 
-  //  checkForReceivedPacket(xbee.getResponse(100));
-  //} catch (Exception e){};
   //render graphic
   // draw the switches on the screen
   for (int i =0; i<switches.size (); i++) {
