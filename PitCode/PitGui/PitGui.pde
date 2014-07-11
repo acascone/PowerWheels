@@ -51,6 +51,12 @@ import com.rapplogic.xbee.api.XBeeAddress16;
 import com.rapplogic.xbee.api.PacketListener;
 import com.rapplogic.xbee.api.wpan.TxStatusResponse;
 
+// TODO: These should be added to a menu item at somepoint
+final boolean LOG_SERIAL = false;
+final boolean RUN_OFFLINE = false;
+
+final int LIVE_TMO_MS = 2000;
+
 // create and initialize a new xbee object
 XBee xbee = new XBee();
 int[] data;
@@ -67,10 +73,6 @@ int tyme = millis();
 int numCounterMeasures = 4;  //number of counter measures on CAR
 boolean[] toggleReq = new boolean[4];  //boolean array used to keep track of which counter measure switch is being toggled
 
-final boolean LOG_SERIAL = false;
-final int LIVE_TMO_MS = 2000;
-
-int temporaryTotal = 0;    //variable to store analog totals to display on indicators
 int error=0;  //XBee error indicator
 
 ArrayList<Light> lights;  //an arrayList for all the lights
@@ -137,7 +139,7 @@ void checkForReceivedPacket(XBeeResponse response)
       pLoad = 0;
       for (int i = 1; i < data.length; i++)
       {
-        pLoad += pow(10, (4-i)) * (data[i]-48);
+        pLoad += pow(10, (4-i)) * (data[i] - '0');
         if (LOG_SERIAL)
         {
           println("i/data[i]/char(data[i])/pLoad: " + i + " / " + data[i] + " / " + char(data[i]) + " / " + pLoad);
@@ -169,8 +171,8 @@ void checkForReceivedPacket(XBeeResponse response)
           {
             st8 = true;
           } 
-          ((Switch) switches.get(data[2] - 49)).state = st8;
-          int swNum = data[2] - 49;
+          switches.get(data[2] - '1').state = st8;
+          int swNum = data[2] - '1';
           if (LOG_SERIAL)
           {
             println("saw " + (char)data[0] + (char)data[1] + (char)data[2] + (char)data[3] + (char)data[4]);
@@ -265,28 +267,32 @@ void setup()
   {
     println("Trying to open XBee Serial Port");
   }
-  try
+  
+  if (!RUN_OFFLINE)
   {
-    //xbee.open("COM12", 9600);
-    xbee.open("/dev/tty.usbserial-A1014K3A", 9600);
-    
-    xbee.addPacketListener(new PacketListener() {
-    public void processResponse(XBeeResponse response) {
-        if (response.getApiId() != ApiId.TX_STATUS_RESPONSE)
-        {
-          aliveTime = millis();
-        }
-        checkForReceivedPacket(response);
+    try
+    {
+      //xbee.open("COM12", 9600);
+      xbee.open("/dev/tty.usbserial-A1014K3A", 9600);
+      
+      xbee.addPacketListener(new PacketListener() {
+      public void processResponse(XBeeResponse response) {
+          if (response.getApiId() != ApiId.TX_STATUS_RESPONSE)
+          {
+            aliveTime = millis();
+          }
+          checkForReceivedPacket(response);
+      }
+      });
     }
-    });
-  }
-  catch (XBeeException e)
-  {
-    // display the exception
-    println(e);
-    
-    // handle the exception
-    exit();
+    catch (XBeeException e)
+    {
+      // display the exception
+      println(e);
+      
+      // handle the exception
+      exit();
+    }
   }
   
   // Create a new file in the sketch directory to store the data coming from the Power Wheels CAR
@@ -377,21 +383,21 @@ void draw()
 
   //render graphic
   // draw the switches on the screen
-  for (int i =0; i<switches.size (); i++) {
-    ((Switch) switches.get(i)).render();
+  for (int j = 0; j < switches.size(); j++) {
+    switches.get(j).render();
   }
 
   // draw the thermometers on the screen
-  for (int j =0; j<indicators.size (); j++) {
-    ((Indicator) indicators.get(j)).render();
+  for (int j = 0; j < indicators.size(); j++) {
+    indicators.get(j).render();
   }
 
   update_status_lights();
 
   // draw the lights on the screen
-  for (int j = 0; j<lights.size (); j++)
+  for (int j = 0; j < lights.size(); j++)
   {
-    ((Light) lights.get(j)).render();
+    lights.get(j).render();
   }
 
   //write data to output file  
@@ -404,11 +410,11 @@ void update_status_lights()
   //then test for error and set lights accordingly.
   if (abs(millis() - aliveTime) > LIVE_TMO_MS)
   {
-    ((Light) lights.get(0)).status = 1;
+    lights.get(0).status = 1;
   }
   else
   {
-    ((Light) lights.get(0)).status = 0;
+    lights.get(0).status = 0;
   }
 }
 
@@ -419,9 +425,9 @@ void mousePressed() {
   // and toggle the state if it was (turn it on or off)
   for (int j=0; j < switches.size (); j++)
   {
-    boolean clicked = ((Switch) switches.get(j)).checkSwitch();
-    if (clicked)
+    if (switches.get(j).checkSwitch())
     {
+      // this switch was clicked
       toggleReq[j] = true;
       // we can break the loop since we can only have one mouse press 
       // at a time. this may not hold true for multitouch interfaces.
@@ -434,7 +440,7 @@ void write_file()
 {
   if (LOG_SERIAL)
   {
-    println("(((Switch) switches.get(0)).state) from Telemetry: " + (((Switch) switches.get(0)).state));
+    println("(switches.get(0).state) from Telemetry: " + (switches.get(0).state));
   }
 
   //Routine to print data in each XBee array as hex characters
@@ -443,18 +449,18 @@ void write_file()
   Date d = new Date();
   String time = formatter.format(d);
   output.print(time + ":");
-  output.print(" MT: " + ((Indicator) indicators.get(0)).temp + ",");
-  output.print(" CT: " + ((Indicator) indicators.get(1)).temp + ",");
-  output.print(" TP: " + ((Indicator) indicators.get(2)).temp + ",");
-  output.print(" CV: " + ((Indicator) indicators.get(3)).temp + ",");
-  output.print(" CC: " + ((Indicator) indicators.get(4)).temp + ",");
+  output.print(" MT: " + indicators.get(0).temp + ",");
+  output.print(" CT: " + indicators.get(1).temp + ",");
+  output.print(" TP: " + indicators.get(2).temp + ",");
+  output.print(" CV: " + indicators.get(3).temp + ",");
+  output.print(" CC: " + indicators.get(4).temp + ",");
   output.print(" Lights: ");
-  output.print(((Light) lights.get(0)).status + ",");
+  output.print(lights.get(0).status + ",");
   output.print(" Switches: ");
-  output.print(((Switch) switches.get(0)).state + ",");
-  output.print(((Switch) switches.get(1)).state + ",");
-  output.print(((Switch) switches.get(2)).state + ",");
-  output.print(((Switch) switches.get(3)).state);
+  output.print(switches.get(0).state + ",");
+  output.print(switches.get(1).state + ",");
+  output.print(switches.get(2).state + ",");
+  output.print(switches.get(3).state);
   output.println();
 }
 
