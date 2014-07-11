@@ -93,60 +93,22 @@ final String Current        = "I";  //current (amps)
 String[] list = new String[2];
 
 PrintWriter output;
-String volts = null;
-String amps = null;
-String mTemp = null;  //motor1 temp
-String cTemp = null;  //controller temp
-String nTemp = null;  //motor2 temp
-String throtPos = null;  //power wheels car throttle position
-
-String param = null;  //generic variable to hold list[1] after trim
 
 int i = 0;
-int displayValue = 0;  //variable passed to getXCTUData
 PImage img;
-int paramInt = 0;  //list[0]
 
 //********************End Indicator Variables***************
 
-//********************Start Common Variables******************
-int     counter = 0;
-//********************End Common Variables********************
-
-//Define number of modules here as a constant
-int     numb_of_modules = 1;
-
-//Define number of bytes in arrays as constants
-int     dataISlength = 40;
-
-//Create an array for the response from each End-device module
-int [][]dataIS = new int[numb_of_modules][dataISlength];
-//int dataIS[][];
 
 //Define ADC reference-voltage input, change as needed.
 float   Vref = 3.3;
-
-//Define digital-output pin for optional "error" LED
-int     LedPin = 13;
-
-//Define additional temporary variables
-int     XBee_numb;
-int     bytecount;
 float   analog_voltage;
-
-int     receiveError = 0;  //if =1 discard XBee data
-int     controller_temperature_error = 0;  //if = 1 then XBee reveived a bogus reading from motor controller
-int     motor_temperature_error = 0;  //if = 1 then XBee reveived a bogus reading from motor controller
-int     checksum_err = 0;
-
-boolean any_switch_armed = false;
 
 int     pLoad = 0;
 int     aliveTime;    //variable to store time of successful response from Alive msg.
 
 void checkForReceivedPacket(XBeeResponse response)
 {
-    //response = xbee.sendSynchronous(request, 10000);
     // we got a response!
     if (LOG_SERIAL)
     {
@@ -288,7 +250,6 @@ void setup()
 
   aliveTime = millis() - LIVE_TMO_MS;
   
-  
   // You’ll need to generate a font before you can run this sketch.
   // Click the Tools menu and choose Create Font. Click Sans Serif,
   // choose a size of 10, and click OK.
@@ -312,15 +273,9 @@ void setup()
     
     xbee.addPacketListener(new PacketListener() {
     public void processResponse(XBeeResponse response) {
-        // handle the response
-        //println("processResponse()");
-        
         if (response.getApiId() != ApiId.TX_STATUS_RESPONSE)
         {
           aliveTime = millis();
-          
-          
-          //println("aliveTime = " + aliveTime);
         }
         checkForReceivedPacket(response);
     }
@@ -328,12 +283,11 @@ void setup()
   }
   catch (XBeeException e)
   {
+    // display the exception
     println(e);
+    
+    // handle the exception
     exit();
-    if (LOG_SERIAL)
-    {
-      println("XBee Serial Port NOT Open");
-    }
   }
   
   // Create a new file in the sketch directory to store the data coming from the Power Wheels CAR
@@ -447,13 +401,6 @@ void draw()
 
 void update_status_lights()
 {
-  //light motor temperature light if an invalid (out of range) motor temperature is received or if there is a communication error with XBee (receiveError = 1).
-  //light controller temperature if an invalid (out of range) controller temperature (controller_temperature_error = 1) is received or if there is a communication error with XBee (receiveError = 1).
-  //light communication light if there is a communication error with XBee (receiveError = 1).
-  if (LOG_SERIAL)
-  {
-    println("receiveError, controller_temperature_error, motor_temperature_error: " + receiveError + "\t" + controller_temperature_error + "\t" + motor_temperature_error);
-  }
   //set indicator lights to good condition
   //then test for error and set lights accordingly.
   if (abs(millis() - aliveTime) > LIVE_TMO_MS)
@@ -489,7 +436,6 @@ void write_file()
 
   //Routine to print data in each XBee array as hex characters
   //Data goes to PC terminal emulator
-  XBee_numb = 0;
   DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd@HH_mm_ss");
   Date d = new Date();
   String time = formatter.format(d);
