@@ -464,3 +464,18 @@ void keyPressed() {
   println("Exiting program");
   exit(); // Stops the program
 }
+
+// This is an experimental function to see if we catch an exit on the window close.
+// This may not work, but it's worth testing
+void exit()
+{
+  println("In stop");
+  try
+  {
+    output.flush(); // Writes the remaining data to the file
+    output.close(); // Finishes the file
+  }
+  catch (Exception e) {}
+  super.exit();
+}
+
