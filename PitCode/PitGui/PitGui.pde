@@ -56,34 +56,24 @@ final boolean LOG_SERIAL = false;
 final boolean RUN_OFFLINE = false;
 
 final int LIVE_TMO_MS = 2000;
+final int numCounterMeasures = 4;  //number of counter measures on CAR
 
 // create and initialize a new xbee object
 XBee xbee = new XBee();
-int[] data;
-int msb = 0;
-int lsb = 0;
-int options = 0;
+int[] data; // TODO: remove
 
-IoSample[] ioData;
-RxResponse16 rxResponse;
-TxRequest16 request;
+RxResponse16 rxResponse; // TODO: remove
+TxRequest16 request; // TODO: remove
 TxRequest16 aliveMsg = new TxRequest16(new XBeeAddress16(0x00, 0x02), new int[] { 'A', 'L', 'I', 'V', 'E' }  );
-int motorControlTemperatureValue = 0;    //variable contains motor control analog temp value
-int tyme = millis();
-int numCounterMeasures = 4;  //number of counter measures on CAR
-boolean[] toggleReq = new boolean[4];  //boolean array used to keep track of which counter measure switch is being toggled
-
-int error=0;  //XBee error indicator
 
 ArrayList<Light> lights;  //an arrayList for all the lights
 ArrayList<Switch> switches;  //an arrayList for all the switches
 ArrayList<Indicator> indicators;
+boolean[] toggleReq = new boolean[numCounterMeasures];  //boolean array used to keep track of which counter measure switch is being toggled
 
 PFont font; // create a font for display
-long elapsedTime = 0;
+PImage img;
 
-//******************Start Indicator Variables***************
-//define labels for indicators
 final String MotorTemp      = "M";  //motor1 temp
 final String ControllerTemp = "C";  //controller temp
 final String MotorTemp2     = "N";  //motor2 temp
@@ -91,20 +81,12 @@ final String ThrottlePos    = "T";  //throttle pos
 final String Voltage        = "V";  //voltage 
 final String Current        = "I";  //current (amps)
 
-String[] list = new String[2];
-
 PrintWriter output;
 
-int i = 0;
-PImage img;
-
-//********************End Indicator Variables***************
-
-
 //Define ADC reference-voltage input, change as needed.
-float   Vref = 3.3;
+final float Vref = 3.3;
 float   analog_voltage;
-
+int motorControlTemperatureValue = 0;    //variable contains motor control analog temp value
 int     pLoad = 0;
 int     aliveTime;    //variable to store time of successful response from Alive msg.
 
