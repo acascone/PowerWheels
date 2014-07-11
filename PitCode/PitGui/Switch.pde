@@ -6,7 +6,6 @@ class Switch {
   int switchNumber, posX, posY;
   boolean state = false; // current switch state
   PImage on, off;        // stores the pictures of the on and off switches
-  int counter = 0;
   String label;
 
   // initialize switch object:
