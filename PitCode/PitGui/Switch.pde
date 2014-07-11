@@ -55,24 +55,15 @@ class Switch {
   void getState()
   {
   }
-  // this function is called to check for a mouse click
-  // on the switch object, and toggle the switch accordingly
-  // it is called by the MousePressed() function so we already
-  // know that the user just clicked the mouse somewhere
-  // Send transmission to CAR arduino requesting that selected
-  // switch be toggled.
-  // When PIT gets transmission from CAR with state of switch,
-  // set switch graphic to match.
-  void toggleState()
+  
+  boolean checkSwitch()
   {
     // check to see if the user clicked the mouse on this particular switch
     if (mouseX >=posX && mouseY >= posY && mouseX <=posX+on.width && mouseY <= posY+on.height) 
     {
-      //     println("clicked on " + address);
-      //      state = !state; // change the state of the switch if it was clicked
-      int switchNum = switchCounter;
-      toggleReq[switchNum] = true;
+      return true;
     }
-  }  //end toggleState
+    return false;
+  }
 } //end of switch class
 

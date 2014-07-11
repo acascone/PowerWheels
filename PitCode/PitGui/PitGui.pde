@@ -79,7 +79,6 @@ ArrayList<Indicator> indicators;
 
 PFont font; // create a font for display
 long elapsedTime = 0;
-int switchCounter = -1;  //keep track of which switch is toggled
 
 //******************Start Indicator Variables***************
 //define labels for indicators
@@ -418,12 +417,16 @@ void mousePressed() {
   // check every switch object on the screen to see 
   // if the mouse press was within its borders
   // and toggle the state if it was (turn it on or off)
-  //  for (int i=0; i < switches.size(); i++) {
-  //    ((Switch) switches.get(i)).toggleState();
-  //  }
-  for (switchCounter=0; switchCounter < switches.size (); switchCounter++)
+  for (int j=0; j < switches.size (); j++)
   {
-    ((Switch) switches.get(switchCounter)).toggleState();
+    boolean clicked = ((Switch) switches.get(j)).checkSwitch();
+    if (clicked)
+    {
+      toggleReq[j] = true;
+      // we can break the loop since we can only have one mouse press 
+      // at a time. this may not hold true for multitouch interfaces.
+      break;
+    }
   }
 }
 
@@ -461,4 +464,3 @@ void keyPressed() {
   println("Exiting program");
   exit(); // Stops the program
 }
-
