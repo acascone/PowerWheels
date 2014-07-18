@@ -90,6 +90,9 @@ int motorControlTemperatureValue = 0;    //variable contains motor control analo
 int     pLoad = 0;
 int     aliveTime;    //variable to store time of successful response from Alive msg.
 
+// Class for talking to G35LightBoard
+G35LightBoard networkedDisplay;
+
 void checkForReceivedPacket(XBeeResponse response)
 {
     // we got a response!
@@ -228,6 +231,9 @@ void checkForReceivedPacket(XBeeResponse response)
 
 void setup()
 {
+  networkedDisplay = new G35LightBoard(this, "alarmpi.home.lan");
+  networkedDisplay.start();
+  
   size(1200, 850); // screen size
   smooth(); // anti-aliasing for graphic display
 
@@ -313,12 +319,13 @@ void setup()
   {
     println("initializing toggleReq[" + i + "]");
     toggleReq[i] = false;
-  }
+  } 
 }  //END setup()
 
 // draw loop executes continuously
 void draw()
 {
+  
   //println("in Draw() " + millis());
   
   background(255); // draw a white background
@@ -383,7 +390,7 @@ void draw()
   }
 
   //write data to output file  
-  write_file();
+  write_file(); 
 } // end of draw loop
 
 void update_status_lights()
@@ -462,6 +469,7 @@ void exit()
   {
     output.flush(); // Writes the remaining data to the file
     output.close(); // Finishes the file
+    networkedDisplay.Close();
   }
   catch (Exception e) {}
   super.exit();
