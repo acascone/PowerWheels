@@ -228,6 +228,7 @@ void checkForReceivedPacket(XBeeResponse response)
       }
     }
 }
+import processing.serial.*;
 
 void setup()
 {
@@ -260,8 +261,20 @@ void setup()
   {
     try
     {
+      String portName = "/dev/tty.usbserial-A1014K3A";
+      Serial myPort;
+      myPort = new Serial(this, portName, 9600);
+      // dirty attempt to flush port
+      //int val;
+      //while ( myPort.available() > 0) {  // If data is available,
+      //  val = myPort.read();         // read it and store it in val
+      //}
+      myPort.clear(); // quick attempt to flush port
+      // Close the port
+      myPort.stop();
+      
       //xbee.open("COM12", 9600);
-      xbee.open("/dev/tty.usbserial-A1014K3A", 9600);
+      xbee.open(portName, 9600);
       
       xbee.addPacketListener(new PacketListener() {
       public void processResponse(XBeeResponse response) {
