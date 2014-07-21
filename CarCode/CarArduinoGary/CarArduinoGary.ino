@@ -1,60 +1,4 @@
-/*
- *20140511  GEM  CAR_REV1_0
- *Start with CAR_REV0_0
- *
- *20140528  GEM  CAR_REV2_0
- *Add generation of throttle position, voltage, current
- *
- *20140529  GEM  CAR_REV2_1
- *Transmit throttle position, voltage, current once every loopsUntilXmit times (e.g. once ever 5 looptimes...loopUntilXmit = 5;)
- *
- *20140531  GEM  CAR_REV3_0
- *Debug s/w cmPB latency issue
- *
- *20140531  GEM  CAR_REV3_1
- *Lots of cmPB latency issues.
- *Trying to get s/w switches to follow h/w LEDs.
- *Probably need to re-write transmit functions
- *
- *20140602  GEM  CAR_REV4_0
- *TransmitData_REV1_0.ino seemed to have no latency issues.
- *Use checkForRcvdPacket() function from TransmitData_REV1_0.ino for receiving packets
- *
- *20140606  GEM  CAR_REV5_0
- *Change checkForRcvdPacket() function to follow isAvailable & isError logic from Series1_Rx in XBee examples folder
- *
- *20140608  GEM  CAR_REV6_0
- *Add logic to provide capability to handle toggle requests
- *& ALIVE transmission from PIT.
- *This logic will be similar to logic from getResponses().
- *
- *20140608  GEM  CAR_REV6_1
- *When ALIVE transmission is received from PIT, 
- *CAR must respond with cmLED_State_Now[] 
- *so that PIT processing S/W can mirror the correct states.
- *
- *20140609  GEM  CAR_REV6_2
- *Randomize voltage, throttle position, current
- *
- *20140615  GEM  CAR_REV6_3
- *In addition to voltage, throttle position, current, add controller temp
- *
- *20140616  GEM  CAR_REV7_0
- *Change motor temperature...It was on XBee pin 19.  Change it to be on analog input to Arduino pin A0.
- *
- *20140616  GEM  CAR_REV7_1
- *Change motor temperature...convert ADC units to degC.
- *
- *20140622  GEM  CAR_REV7_2
- *Add capability to handle FIRE & PIT IN switches from PIT.
- *
- *20140624  GEM  CAR_REV7_3
- *Add logic to FIRE counter measures.
- *Add logic to light PIT IN light.
- *
- */
 #include <XBee.h>
-#include <NewSoftSerial.h>
 
 //#define LOG_SERIAL    //log to serial device when uncommented
 
@@ -62,7 +6,6 @@ XBee xbee = XBee();
 XBeeResponse response = XBeeResponse();
 // create reusable response objects for responses we expect to handle 
 Rx16Response rx16 = Rx16Response();
-Rx64Response rx64 = Rx64Response();
 Rx16IoSampleResponse ioSample = Rx16IoSampleResponse();
 
 //**********
@@ -75,29 +18,17 @@ boolean pin4;  //stores status of PIT XBee AD04 (FIRE)
 uint8_t option = 0;
 uint8_t data = 0;
 const int numCounterMeasures = 4;
-int cmLED_Pins[numCounterMeasures] = {
-  13, 12, 5, 7};      // pins for counter measure LEDs
-int *ptr_cmLED_Pins;          // pointer to cmLED_Pins[]
-int cmPB_Pins[numCounterMeasures] = {
-  4, 6, 8, 9};  //pins for counter measure arming PBs
+int cmLED_Pins[numCounterMeasures] = {13, 12, 5, 7};      // pins for counter measure LEDs
+int cmPB_Pins[numCounterMeasures] = {4, 6, 8, 9};  //pins for counter measure arming PBs
 int PIT_IN_LED = 2;    //PIT IN LED is on Arduino pin 2
-int cm_Pins[3] = {
-  3, 10, 11};  //pins for counter measure PBs
-int *ptr_cmPB_Pins;
-boolean bool_cmPB_State_Now[numCounterMeasures] = {
-  false, false, false, false};        // current state of counter measure PBs
-boolean bool_cmPB_State_Prev[numCounterMeasures] = {
-  false, false, false, false};        // previous state of counter measure PBs
-int cmPB_State_Now[numCounterMeasures] = {
-  0, 0, 0, 0};        // current state of counter measure PBs
-int cmPB_State_Prev[numCounterMeasures] = {
-  0, 0, 0, 0};        // previous state of counter measure PBs
-int cmLED_State_Now[numCounterMeasures] = {
-  0, 0, 0, 0};        // current state of counter measure LEDs
-int cmLED_State_Prev[numCounterMeasures] = {
-  0, 0, 0, 0};        // previous state of counter measure LEDs
-boolean toggleReq[] = {
-  false, false, false, false};
+int cm_Pins[3] = {3, 10, 11};  //pins for counter measure PBs
+boolean bool_cmPB_State_Now[numCounterMeasures] = {false, false, false, false};        // current state of counter measure PBs
+boolean bool_cmPB_State_Prev[numCounterMeasures] = {false, false, false, false};        // previous state of counter measure PBs
+int cmPB_State_Now[numCounterMeasures] = {0, 0, 0, 0};        // current state of counter measure PBs
+int cmPB_State_Prev[numCounterMeasures] = {0, 0, 0, 0};        // previous state of counter measure PBs
+int cmLED_State_Now[numCounterMeasures] = {0, 0, 0, 0};        // current state of counter measure LEDs
+int cmLED_State_Prev[numCounterMeasures] = {0, 0, 0, 0};        // previous state of counter measure LEDs
+boolean toggleReq[] = { false, false, false, false};
 boolean aliveReq = false;
 // pitUp variable indicates status of pit XBee/processing system...
 // true = pit system up & working, false = not working
@@ -108,8 +39,7 @@ boolean pitAlivePulse  = false;
 boolean pitAliveMsgRcvd = false;
 
 // allocate five bytes for to hold a payload
-uint8_t payload[] = { 
-  0, 0, 0, 0, 0};
+uint8_t payload[] = {0, 0, 0, 0, 0};
 
 // with Series 1 you can use either 16-bit or 64-bit addressing
 // 16-bit addressing: Enter address of remote XBee, typically the coordinator
@@ -310,7 +240,6 @@ if (pin3)
 else
 //      if (!pin3)
       {
-        //Serial.print("cm_Pins[0/1/2]: ");
         for (int i = 0; i < 3; i++)
         {
           digitalWrite(cm_Pins[i], cmLED_State_Now[i]);
@@ -439,110 +368,6 @@ void send_tx()
   }
 }
 
-void getResponses()
-{
-  // Get responses
-  xbee.readPacket();
-  if (xbee.getResponse().isAvailable())
-  {
-#ifdef LOG_SERIAL
-    Serial.println();
-    Serial.println("Got an XBee response");
-    Serial.print("XBee response is: ");
-    Serial.println(xbee.getResponse().getApiId(),HEX);
-#endif
-
-    // got something
-    // got an rx packet
-    if (xbee.getResponse().getApiId() == RX_16_RESPONSE)
-    {
-      xbee.getResponse().getRx16Response(rx16);
-
-#ifdef LOG_SERIAL
-      for (int i = 0; i < rx16.getDataLength(); i++)
-      {
-        Serial.print("i: ");
-        Serial.print(i);
-        Serial.print("\t"); 
-        Serial.println(rx16.getData(i),HEX);
-      }
-#endif
-      //Valid RX_16_RESPONSE should have rx16.getDataLength() = 5
-      //and rx16.getData(4) will hold either an "E" (ALIVE)
-      //or the number 1 through 4 if PIT sends a toggle request (TGCM1, TGCM2, TGCM3, TGCM4).
-      if (rx16.getDataLength() == 5)
-      {
-#ifdef LOG_SERIAL
-        Serial.print("in void getResponses()...rx16.getData(4): ");
-        Serial.println(rx16.getData(4));
-#endif
-        if (rx16.getData(4) == 'E')
-        {
-#ifdef LOG_SERIAL
-          Serial.println("in void getResponses()...setting pitAliveNow true");
-#endif
-          pitAliveNow = true;
-#ifdef LOG_SERIAL
-          Serial.print("pitAliveNow: ");
-          Serial.println(pitAliveNow);
-#endif
-
-        }
-        else if (rx16.getData(4) >= '1' && rx16.getData(4) <= '4')
-        {
-#ifdef LOG_SERIAL
-          Serial.print("about to set toggleReq ");
-          Serial.print((char)rx16.getData(4) - 49);
-          Serial.println(" true...NOTE this is not LED state");
-#endif
-          toggleReq[(char)rx16.getData(4) - 49] = true;
-        }
-        else
-        {
-#ifdef LOG_SERIAL
-          Serial.println("We received an RX_16_RESPONSE of length 5 BUT data in rx16.getData(4) was invalid");
-#endif
-        }
-      }  // end       if (rx16.getDataLength() == 5)
-
-      else    //else error
-      {
-#ifdef LOG_SERIAL
-        Serial.println("We received a RX_16_RESPONSE BUT it was the wrong length (not of length 5)");
-#endif
-      }
-      // TODO check option, rssi bytes    
-    }   //end     if (xbee.getResponse().getApiId() == RX_16_RESPONSE)
-
-    else
-    {
-      // not something we were expecting
-#ifdef LOG_SERIAL
-      Serial.println("Received a response that is NOT RX_16_RESPONSE");
-      Serial.print("response is: ");
-      Serial.println(xbee.getResponse().getApiId());
-      Serial.print("HEX: ");
-      Serial.println(xbee.getResponse().getApiId(), HEX);
-      Serial.print("BIN: ");
-      Serial.println(xbee.getResponse().getApiId(), BIN);
-      Serial.print("DEC: ");
-      Serial.println(xbee.getResponse().getApiId(), DEC);
-      if (xbee.getResponse().getApiId() == TX_STATUS_RESPONSE)
-      {
-        Serial.println("TX_STATUS_RESPONSE RECEIVED");
-      }
-#endif
-    }
-  } // end if (xbee.getResponse().isAvailable())
-  else if (xbee.getResponse().isError())
-  {
-#ifdef LOG_SERIAL
-    Serial.print("Error reading packet.  Error code: ");  
-    Serial.println(xbee.getResponse().getErrorCode());
-#endif
-  }
-}  // end void getResponses()
-
 void calcLED_States()
 {
 #ifdef LOG_SERIAL
@@ -557,7 +382,7 @@ void calcLED_States()
 
   for (int i = 0; i < numCounterMeasures; i++)
   {
-    int cmPB_Pulse = ((cmPB_State_Now[i] && !cmPB_State_Prev[i] || !cmPB_State_Now[i] && cmPB_State_Prev[i]) && cmPB_State_Now[i]);  //generate pulse when cmPB_State_Now[i] first goes high
+    int cmPB_Pulse = (((cmPB_State_Now[i] && !cmPB_State_Prev[i]) || (!cmPB_State_Now[i] && cmPB_State_Prev[i])) && cmPB_State_Now[i]);  //generate pulse when cmPB_State_Now[i] first goes high
     bool_cmPB_State_Now[i] = false;
     bool_cmPB_State_Prev[i] = false;
     if (cmPB_State_Now[i] ==1) bool_cmPB_State_Now[i] = true;
@@ -631,7 +456,7 @@ void readAnalogs()
 
 void nullPayload()
 {
-  for (int i = 0; i < sizeof(payload); i++)
+  for (unsigned int i = 0; i < sizeof(payload); i++)
   {
     payload[i] = char(0);
   }
@@ -644,18 +469,23 @@ void setup()
   {
     pinMode(cmLED_Pins[i], OUTPUT);
   }
+  
   for (int i = 0; i < 3; i++)
   {
     pinMode(cm_Pins[i], OUTPUT);
   }
+  
   pinMode(PIT_IN_LED, OUTPUT);
+  
   //setup up inputs
   for (int i = 0; i < numCounterMeasures; i++)
   {
     pinMode(cmPB_Pins[i], INPUT);
   }
-
-  xbee.begin(9600);
+  
+  Serial.begin(9600);
+  xbee.setSerial(Serial);
+  
 #ifdef LOG_SERIAL
   for (int i = 0; i < sizeof(payload); i++)
   {
@@ -698,12 +528,6 @@ void loop()
 #endif
   for (int i = 0; i < numCounterMeasures; i++)
   {
-    int *ptr_cmPB_Pins;
-    int *ptrNumber;
-    int value;
-    //    value = digitalRead(cmPB_Pins[i]);
-    ptr_cmPB_Pins = &cmPB_Pins[i];
-    //    cmPB_State_Now[i] = digitalRead(*ptr_cmPB_Pins);
     cmPB_State_Now[i] = digitalRead(cmPB_Pins[i]);
   }
 
@@ -736,11 +560,6 @@ void loop()
 #endif
   for (int i = 0; i < numCounterMeasures; i++)
   {
-    int *ptr_cmLED_Pins;
-    int value;
-    //    value = digitalRead(cmLED_Pins[i]);
-    ptr_cmLED_Pins = &cmLED_Pins[i];
-    //    cmLED_State_Now[i] = digitalRead(*ptr_cmLED_Pins);
     cmLED_State_Now[i] = digitalRead(cmLED_Pins[i]);
   }
 
@@ -923,53 +742,4 @@ void loop()
   // this is not great...
   delay(100);
 }  //end of loop()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

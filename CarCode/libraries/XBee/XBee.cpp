@@ -745,28 +745,29 @@ void XBeeResponse::reset() {
 	_frameLength = 0;
 
 	_errorCode = NO_ERROR;
-
-	for (int i = 0; i < MAX_FRAME_DATA_SIZE; i++) {
-		getFrameData()[i] = 0;
-	}
 }
 
 void XBee::resetResponse() {
 	_pos = 0;
 	_escape = false;
+	_checksumTotal = 0;
 	_response.reset();
 }
 
 XBee::XBee(): _response(XBeeResponse()) {
-	_pos = 0;
-	_escape = false;
-	_checksumTotal = 0;
-	_nextFrameId = 0;
-	
-	_response.init();
-	_response.setFrameData(_responseFrameData);
-	// default
-	_serial = &Serial;
+        _pos = 0;
+        _escape = false;
+        _checksumTotal = 0;
+        _nextFrameId = 0;
+
+        _response.init();
+        _response.setFrameData(_responseFrameData);
+		// Contributed by Paul Stoffregen for Teensy support
+#if defined(__AVR_ATmega32U4__) || defined(__MK20DX128__)
+        _serial = &Serial1;
+#else
+        _serial = &Serial;
+#endif
 }
 
 uint8_t XBee::getNextFrameId() {
@@ -781,11 +782,12 @@ uint8_t XBee::getNextFrameId() {
 	return _nextFrameId;
 }
 
-void XBee::begin(long baud) {
-	_serial->begin(baud);
+// Support for SoftwareSerial. Contributed by Paul Stoffregen
+void XBee::begin(Stream &serial) {
+	_serial = &serial;
 }
 
-void XBee::setSerial(HardwareSerial &serial) {
+void XBee::setSerial(Stream &serial) {
 	_serial = &serial;
 }
 
@@ -945,8 +947,6 @@ void XBee::readPacket() {
 					// reset state vars
 					_pos = 0;
 
-					_checksumTotal = 0;
-
 					return;
 				} else {
 					// add to packet array, starting with the fourth byte of the apiFrame
@@ -1044,6 +1044,14 @@ void XBeeAddress64::setLsb(uint32_t lsb) {
 	_lsb = lsb;
 }
 
+// contributed by user repat123 on issue tracker
+//bool XBeeAddress64::operator==(XBeeAddress64 addr) {
+//    return ((_lsb == addr.getLsb()) && (_msb == addr.getMsb()));
+//}
+
+//bool XBeeAddress64::operator!=(XBeeAddress64 addr) {
+//            return !(*this == addr);
+//}
 
 #ifdef SERIES_2
 
