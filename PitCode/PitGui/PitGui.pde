@@ -155,9 +155,9 @@ void checkForReceivedPacket(XBeeResponse response)
           } else
           {
             st8 = true;
-          } 
-          switches.get(data[2] - '1').state = st8;
+          }
           int swNum = data[2] - '1';
+          switches.get(swNum).state = st8;
           if (LOG_SERIAL)
           {
             println("saw " + (char)data[0] + (char)data[1] + (char)data[2] + (char)data[3] + (char)data[4]);
@@ -262,18 +262,12 @@ void setup()
     try
     {
       String portName = "/dev/tty.usbserial-A1014K3A";
-      Serial myPort;
-      myPort = new Serial(this, portName, 9600);
-      // dirty attempt to flush port
-      //int val;
-      //while ( myPort.available() > 0) {  // If data is available,
-      //  val = myPort.read();         // read it and store it in val
-      //}
-      myPort.clear(); // quick attempt to flush port
-      // Close the port
-      myPort.stop();
+      //String portName = "COM12";
       
-      //xbee.open("COM12", 9600);
+      //Serial myPort = new Serial(this, portName, 9600);
+      //myPort.clear(); // Flush port
+      //myPort.stop(); // Close port
+      
       xbee.open(portName, 9600);
       
       xbee.addPacketListener(new PacketListener() {
