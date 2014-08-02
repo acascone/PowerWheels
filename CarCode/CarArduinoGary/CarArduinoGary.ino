@@ -5,7 +5,7 @@
 
 // For testing purposes: analog values for throttle position, voltage,
 // current, and controller temperature are either read or simulated.
-const boolean simulateAnalogs = true;
+const boolean simulateAnalogs = false;
 const uint16_t PIT_ADDRESS = 0x0005;
 
 const float slope = -0.155611606;      // for temperature conversion
@@ -62,7 +62,7 @@ void setup()
   
   controller.begin(&Serial1);
   
-  Serial2.begin(9600);
+  Serial2.begin(57600);
   xbee.setSerial(Serial2);
 }
 
@@ -415,6 +415,6 @@ void loop()
   pitAlive = (millis() - pitLastMsgTime) < pitMsgTimeout;
   
   // this is not great...
-  delay(100);
+  //delay(100);
 }
 

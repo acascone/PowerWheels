@@ -263,12 +263,13 @@ void setup()
     {
       String portName = "/dev/tty.usbserial-A1014K3A";
       //String portName = "COM12";
+      int baud = 57600;
       
-      //Serial myPort = new Serial(this, portName, 9600);
-      //myPort.clear(); // Flush port
-      //myPort.stop(); // Close port
+      Serial myPort = new Serial(this, portName, baud);
+      myPort.clear(); // Flush port
+      myPort.stop(); // Close port
       
-      xbee.open(portName, 9600);
+      xbee.open(portName, baud);
       
       xbee.addPacketListener(new PacketListener() {
       public void processResponse(XBeeResponse response) {
